@@ -301,7 +301,7 @@ export function AppNavbar({ onLoginRequested }: AppNavbarProps) {
                                 href={buildCatalogCategoryHref("all")}
                                 aria-current={activeCategory === "all" ? "page" : undefined}
                                 className={[
-                                    "inline-flex min-h-9 items-center whitespace-nowrap rounded-[6px] px-3 text-[11px] font-extrabold uppercase transition-colors",
+                                    "inline-flex min-h-11 items-center whitespace-nowrap rounded-[6px] px-3 text-xs font-extrabold uppercase transition-colors",
                                     activeCategory === "all"
                                         ? "bg-(--saut-navy) text-white"
                                         : "bg-(--surface-3) text-(--saut-black) hover:bg-(--saut-yellow)",
@@ -317,7 +317,7 @@ export function AppNavbar({ onLoginRequested }: AppNavbarProps) {
                                         href={buildCatalogCategoryHref(category.value)}
                                         aria-current={active ? "page" : undefined}
                                         className={[
-                                            "inline-flex min-h-9 items-center whitespace-nowrap rounded-[6px] px-3 text-[11px] font-extrabold uppercase transition-colors",
+                                            "inline-flex min-h-11 items-center whitespace-nowrap rounded-[6px] px-3 text-xs font-extrabold uppercase transition-colors",
                                             active
                                                 ? "bg-(--saut-navy) text-white"
                                                 : "bg-(--surface-3) text-(--saut-black) hover:bg-(--saut-yellow)",

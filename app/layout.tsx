@@ -40,6 +40,9 @@ export default function RootLayout({
             suppressHydrationWarning
             className={`${rethinkSans.variable} ${archivoBlack.variable} antialiased`}
         >
+        <a className="saut-skip-link" href="#main-content">
+            Saltar al contenido principal
+        </a>
         <ToastProvider>
             <CartProvider>
                 <ScrollMotion>{children}</ScrollMotion>

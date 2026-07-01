@@ -19,7 +19,7 @@ export function AppShell({ header, footer, children, mainClassName }: AppShellPr
             {header}
 
             {/* flex-1 asegura que el footer quede pegado abajo sin “líneas” extra */}
-            <main className={mainClassName ?? DEFAULT_MAIN_CLASS}>{children}</main>
+            <main id="main-content" tabIndex={-1} className={mainClassName ?? DEFAULT_MAIN_CLASS}>{children}</main>
 
             {footer}
         </div>
