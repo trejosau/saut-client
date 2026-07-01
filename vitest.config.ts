@@ -16,8 +16,23 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       reporter: ["text", "json-summary"],
-      include: ["core/**/*.{ts,tsx}"],
-      exclude: ["**/*.test.{ts,tsx}"],
+      include: [
+        "core/**/*.{ts,tsx}",
+        "modules/auth/client/api.ts",
+        "modules/commerce/client/api.ts",
+        "modules/support/client/api.ts",
+        "modules/catalog/constants/**/*.ts",
+        "modules/customizer/types.ts",
+        "modules/orders/client/storage.ts",
+        "widgets/catalog/ProductCard.tsx",
+      ],
+      exclude: ["**/*.test.{ts,tsx}", "**/index.ts", "**/types/index.ts"],
+      thresholds: {
+        statements: 60,
+        branches: 55,
+        functions: 55,
+        lines: 60,
+      },
     },
   },
 });
