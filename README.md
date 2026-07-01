@@ -43,11 +43,11 @@ Esta app en `Next.js 16` concentra dos experiencias:
 - `/dashboard/analitica`
 - `/dashboard/permisos-auditoria`
 
-## Como se conecta
+## Cómo se conecta
 
-- HTTP contra el API Gateway de SAUT.
-- WebSocket directo al servicio `analytics_map` para el mapa de ventas en tiempo real.
-- Cookies de sesion para el dashboard y rutas de auth de `saut-auth-service`.
+- HTTP contra la API modular NestJS/Fastify de SAUT.
+- WebSocket contra la misma API para el mapa de ventas en tiempo real.
+- Cookies HTTP-only mediante el BFF de Next.js para autenticación y dashboard.
 
 Variables usadas con mas frecuencia:
 
@@ -72,6 +72,27 @@ npm run dev
 ```
 
 Por defecto corre en `http://localhost:4200`.
+
+## Calidad
+
+```bash
+npm run lint
+npm run typecheck
+npm run test:unit
+npm run test:coverage
+npm run build
+```
+
+Las pruebas usan Vitest, Testing Library y jsdom. Los estilos globales, tokens
+semánticos y estados accesibles viven en `app/globals.css` y
+`core/design-system`.
+
+## Flujo Git
+
+- `main`: estado estable.
+- `develop`: integración.
+- `feature/*`, `test/*`, `fix/*`, `refactor/*` y `chore/*`: trabajo aislado.
+- Las ramas se fusionan con `--no-ff`; no se usa force push.
 
 ## Nota de estado
 
