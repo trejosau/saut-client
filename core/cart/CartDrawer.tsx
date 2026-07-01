@@ -254,7 +254,7 @@ export function CartDrawer() {
                                                     onClick={() => setItemQuantity(item.lineId, item.quantity - 1)}
                                                     disabled={!canDecrease}
                                                     className={[
-                                                        "grid h-8 w-8 place-items-center text-[16px] font-black transition",
+                                                        "grid h-11 w-11 place-items-center text-[16px] font-black transition",
                                                         canDecrease
                                                             ? "hover:bg-[rgba(8,10,13,.08)]"
                                                             : "cursor-not-allowed opacity-40",
@@ -275,14 +275,14 @@ export function CartDrawer() {
                                                             normalizeQty(Number(event.target.value))
                                                         )
                                                     }
-                                                    className="h-8 w-12 border-x border-(--border) bg-transparent text-center text-[12px] font-black outline-none focus-visible:bg-[rgba(255,255,255,.72)]"
+                                                    className="h-11 w-14 border-x border-(--border) bg-transparent text-center text-sm font-black outline-none focus-visible:bg-[rgba(255,255,255,.72)]"
                                                     aria-label={`Cantidad de ${item.name}`}
                                                 />
 
                                                 <button
                                                     type="button"
                                                     onClick={() => setItemQuantity(item.lineId, item.quantity + 1)}
-                                                    className="grid h-8 w-8 place-items-center text-[16px] font-black transition hover:bg-[rgba(8,10,13,.08)]"
+                                                    className="grid h-11 w-11 place-items-center text-[16px] font-black transition hover:bg-[rgba(8,10,13,.08)]"
                                                     aria-label={`Aumentar cantidad de ${item.name}`}
                                                 >
                                                     +
@@ -292,7 +292,7 @@ export function CartDrawer() {
                                             <button
                                                 type="button"
                                                 onClick={() => removeItem(item.lineId)}
-                                                className="h-8 rounded-full border border-[rgba(219,38,75,.34)] bg-[rgba(219,38,75,.12)] px-3 text-[10px] font-black tracking-[0.12em] uppercase text-[rgba(8,10,13,.78)] transition hover:bg-[rgba(219,38,75,.18)]"
+                                                className="min-h-11 rounded-full border border-[rgba(219,38,75,.34)] bg-[rgba(219,38,75,.12)] px-4 text-xs font-black uppercase text-[rgba(8,10,13,.78)] transition-colors hover:bg-[rgba(219,38,75,.18)]"
                                             >
                                                 Eliminar
                                             </button>

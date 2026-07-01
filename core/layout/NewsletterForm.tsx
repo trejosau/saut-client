@@ -61,9 +61,14 @@ export function NewsletterForm() {
                 type="email"
                 required
                 autoComplete="email"
+                aria-describedby="newsletter-hint"
                 placeholder="Dirección de correo electrónico"
                 className="h-12 min-w-0 flex-1 rounded-[8px] border border-white/20 bg-white/10 px-4 text-base text-white placeholder:text-white/46 outline-none transition focus:border-(--saut-yellow) focus:bg-white/14"
             />
+
+            <span id="newsletter-hint" className="sr-only">
+                Recibirás novedades de productos y lanzamientos de SAUT.
+            </span>
 
             <button
                 type="submit"

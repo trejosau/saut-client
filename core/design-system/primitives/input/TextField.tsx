@@ -113,6 +113,7 @@ export function TextField({
                           }: TextFieldProps) {
     const reactId = React.useId();
     const inputId = id ?? `tf-${reactId}`;
+    const feedbackId = `${inputId}-feedback`;
 
     const autoState: TextFieldState =
         error ? "error" : success ? "success" : stateProp;
@@ -193,6 +194,8 @@ export function TextField({
                     id={inputId}
                     type={inputType}
                     disabled={disabled}
+                    aria-invalid={Boolean(error) || undefined}
+                    aria-describedby={hint || error || success ? feedbackId : undefined}
                     className={cn(
                         "min-w-0 flex-1 bg-transparent outline-none",
                         "placeholder:text-[var(--muted)]",
@@ -226,11 +229,11 @@ export function TextField({
             </div>
 
             {(hint || error || success) ? (
-                <div className="mt-2 text-[12px] font-extrabold leading-snug">
+                <div id={feedbackId} className="mt-2 text-[12px] font-extrabold leading-snug">
                     {error ? (
-                        <p className="m-0 text-[rgba(219,38,75,.95)]">{error}</p>
+                        <p role="alert" className="m-0 text-(--danger)">{error}</p>
                     ) : success ? (
-                        <p className="m-0 text-[rgba(5,122,168,.95)]">{success}</p>
+                        <p className="m-0 text-(--success)">{success}</p>
                     ) : hint ? (
                         <p className="m-0 text-[var(--muted)]">{hint}</p>
                     ) : null}
