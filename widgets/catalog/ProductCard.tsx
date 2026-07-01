@@ -228,7 +228,7 @@ export default function ProductCard({ product, onAdd, className }: Props) {
                 </h3>
 
                 {variants.length > 1 ? (
-                    <div className="mt-3 flex min-h-8 flex-wrap gap-1.5" aria-label="Variantes de diseño">
+                    <div className="mt-3 flex min-h-11 flex-wrap gap-2" aria-label="Variantes de diseño">
                         {variants.map((variant) => {
                             const selected = selectedVariant?.id === variant.id;
                             const preview = variant.frontOverlaySrc || variant.backOverlaySrc;
@@ -245,7 +245,7 @@ export default function ProductCard({ product, onAdd, className }: Props) {
                                     aria-label={`Diseño ${variant.label}`}
                                     aria-pressed={selected}
                                     className={[
-                                        "grid h-8 w-8 place-items-center overflow-hidden rounded-[6px] border bg-(--surface-2)",
+                                        "grid h-11 w-11 place-items-center overflow-hidden rounded-[8px] border bg-(--surface-2) transition-colors",
                                         selected ? "border-(--saut-blue) ring-2 ring-[rgba(5,122,168,.18)]" : "border-(--border)",
                                     ].join(" ")}
                                 >
