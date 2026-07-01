@@ -9,6 +9,11 @@ import {
     type CartItem,
     CartContext,
 } from "@/core/cart/context";
+import {
+    createCartLineKey,
+    normalizeCartQuantity,
+    normalizeCartSelections,
+} from "@/core/cart/cart-utils";
 
 const STORAGE_KEY = "saut.cart.v1";
 
@@ -34,34 +39,6 @@ function createLineId() {
         return crypto.randomUUID();
     }
     return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-}
-
-function normalizeQuantity(value: number | undefined) {
-    if (!Number.isFinite(value)) return 1;
-    return Math.max(1, Math.floor(value ?? 1));
-}
-
-function normalizeSelections(input: AddCartItemInput["selections"]) {
-    return (input ?? [])
-        .map((selection) => ({
-            label: selection.label.trim(),
-            value: selection.value.trim(),
-        }))
-        .filter((selection) => selection.label.length > 0 && selection.value.length > 0);
-}
-
-function createLineKey(
-    productId: string,
-    selections: { label: string; value: string }[],
-    suffix?: string
-) {
-    const normalized = [...selections]
-        .sort((a, b) => a.label.localeCompare(b.label))
-        .map((selection) => `${selection.label}:${selection.value}`)
-        .join("|");
-    const base = `${productId}::${normalized}`;
-    if (!suffix || suffix.trim().length === 0) return base;
-    return `${base}::${suffix.trim()}`;
 }
 
 function readStorage(): CartItem[] {
@@ -102,9 +79,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }, [items, hydrated]);
 
     const addItem = React.useCallback((input: AddCartItemInput) => {
-        const quantity = normalizeQuantity(input.quantity);
-        const selections = normalizeSelections(input.selections);
-        const key = createLineKey(input.productId, selections, input.lineKeySuffix);
+        const quantity = normalizeCartQuantity(input.quantity);
+        const selections = normalizeCartSelections(input.selections);
+        const key = createCartLineKey(input.productId, selections, input.lineKeySuffix);
         const front = input.imageFrontSrc ?? input.imageSrc;
         const back = input.imageBackSrc ?? front;
 
@@ -161,7 +138,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     const setItemQuantity = React.useCallback((lineId: string, quantity: number) => {
-        const nextQty = normalizeQuantity(quantity);
+        const nextQty = normalizeCartQuantity(quantity);
         setItems((prev) =>
             prev.map((item) =>
                 item.lineId === lineId ? { ...item, quantity: nextQty } : item

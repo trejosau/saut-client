@@ -5,22 +5,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 
 import { useCart } from "@/core/cart/context";
-
-function formatMXN(amount: number) {
-    try {
-        return amount.toLocaleString("es-MX", {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-        });
-    } catch {
-        return String(amount);
-    }
-}
-
-function normalizeQty(value: number) {
-    if (!Number.isFinite(value)) return 1;
-    return Math.max(1, Math.floor(value));
-}
+import { formatCurrencyMXN, normalizeCartQuantity } from "@/core/cart/cart-utils";
 
 function areaToStyle(area?: { xPct: number; yPct: number; wPct: number; hPct: number }): React.CSSProperties {
     if (!area) return { display: "none" };
@@ -232,7 +217,7 @@ export function CartDrawer() {
                                                         Unitario
                                                     </span>
                                                     <span className="text-[12px] font-black tracking-[0.1em] uppercase text-(--saut-navy)">
-                                                        ${formatMXN(item.unitPrice)}
+                                                        ${formatCurrencyMXN(item.unitPrice)}
                                                     </span>
                                                 </div>
 
@@ -241,7 +226,7 @@ export function CartDrawer() {
                                                         Total item
                                                     </span>
                                                     <span className="text-[13px] font-black tracking-[0.1em] uppercase text-(--saut-navy)">
-                                                        ${formatMXN(lineTotal)}
+                                                        ${formatCurrencyMXN(lineTotal)}
                                                     </span>
                                                 </div>
                                             </div>
@@ -272,7 +257,7 @@ export function CartDrawer() {
                                                     onChange={(event) =>
                                                         setItemQuantity(
                                                             item.lineId,
-                                                            normalizeQty(Number(event.target.value))
+                                                            normalizeCartQuantity(Number(event.target.value))
                                                         )
                                                     }
                                                     className="h-11 w-14 border-x border-(--border) bg-transparent text-center text-sm font-black outline-none focus-visible:bg-[rgba(255,255,255,.72)]"
@@ -312,7 +297,7 @@ export function CartDrawer() {
                         </div>
                         <div className="mt-2 flex items-center justify-between text-[12px] font-black tracking-[0.14em] uppercase">
                             <span className="text-(--muted)">Subtotal</span>
-                            <span className="text-(--saut-navy)">${formatMXN(subtotal)}</span>
+                            <span className="text-(--saut-navy)">${formatCurrencyMXN(subtotal)}</span>
                         </div>
                     </div>
 
