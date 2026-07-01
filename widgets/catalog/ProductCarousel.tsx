@@ -189,7 +189,7 @@ export default function ProductCarousel({ products, intervalMs = 4200, className
                             type="button"
                             onClick={() => scrollToPage(i)}
                             className={[
-                                "relative h-8 w-8 rounded-full transition after:absolute after:left-1/2 after:top-1/2 after:h-2 after:w-2 after:-translate-x-1/2 after:-translate-y-1/2 after:rounded-full after:content-['']",
+                                "relative h-11 w-11 rounded-full transition after:absolute after:left-1/2 after:top-1/2 after:h-2.5 after:w-2.5 after:-translate-x-1/2 after:-translate-y-1/2 after:rounded-full after:content-['']",
                                 i === selectedPage
                                     ? "after:bg-(--saut-blue)"
                                     : "after:bg-[rgba(8,10,13,.18)] hover:after:bg-[rgba(8,10,13,.38)]",

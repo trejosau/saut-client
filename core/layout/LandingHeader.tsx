@@ -32,7 +32,7 @@ function LandingHeaderContent() {
     return (
         <header className="sticky top-0 z-50 border-b border-(--border)">
             <div className="bg-(--saut-navy) text-white">
-                <div className="saut-container flex min-h-8 items-center justify-center gap-5 text-center text-[11px] font-bold uppercase">
+                <div className="saut-container flex min-h-9 items-center justify-center gap-5 text-center text-xs font-bold uppercase">
                     <span>Envíos a todo México</span>
                     <span className="hidden h-1 w-1 rounded-full bg-(--saut-yellow) sm:block" />
                     <span className="hidden sm:block">Producción cuidada</span>
