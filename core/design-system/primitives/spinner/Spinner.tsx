@@ -26,4 +26,3 @@ export function Spinner({ size = "md", label = "Cargando", className, ...props }
     />
   );
 }
-

@@ -59,4 +59,3 @@ export const NumberStepper = React.forwardRef<HTMLInputElement, NumberStepperPro
 });
 
 NumberStepper.displayName = "NumberStepper";
-

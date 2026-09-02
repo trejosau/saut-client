@@ -22,4 +22,3 @@ export function SearchInput({ onClear, value, defaultValue, ...props }: SearchIn
     />
   );
 }
-

@@ -18,4 +18,3 @@ export function Dropdown({ open: openProp, onOpenChange, trigger, content, align
   });
   return <div ref={ref} className={cn("saut-dropdown", className)} {...props}><button type="button" aria-haspopup="menu" aria-expanded={open} className="saut-dropdown__trigger" onClick={() => setOpen(!open)}>{trigger}</button>{open ? <div role="menu" className={cn("saut-dropdown__content", align === "start" ? "left-0" : "right-0")}>{content}</div> : null}</div>;
 }
-

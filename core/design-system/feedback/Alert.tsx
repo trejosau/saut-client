@@ -31,4 +31,3 @@ export function Alert({ tone = "info", title, onClose, className, children, ...p
     </div>
   );
 }
-

@@ -13,4 +13,3 @@ export type BadgeProps = React.HTMLAttributes<HTMLSpanElement> & {
 export function Badge({ tone = "neutral", size = "sm", className, ...props }: BadgeProps) {
   return <span className={cn("saut-badge", `saut-badge--${tone}`, `saut-badge--${size}`, className)} {...props} />;
 }
-

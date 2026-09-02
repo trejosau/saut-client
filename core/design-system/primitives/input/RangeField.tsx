@@ -44,4 +44,3 @@ export const RangeField = React.forwardRef<HTMLInputElement, RangeFieldProps>(fu
 });
 
 RangeField.displayName = "RangeField";
-

@@ -41,7 +41,6 @@ export function FormField({
     </div>
   );
 }
-
 export type FormLabelProps = React.LabelHTMLAttributes<HTMLLabelElement> & {
   required?: boolean;
 };
@@ -76,4 +75,3 @@ export type FormActionsProps = React.HTMLAttributes<HTMLDivElement>;
 export function FormActions({ className, ...props }: FormActionsProps) {
   return <div className={cn("saut-form-actions", className)} {...props} />;
 }
-

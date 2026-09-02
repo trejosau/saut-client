@@ -15,4 +15,3 @@ describe("form error normalization", () => {
     expect(bag.summary).toEqual(["Revisa los campos"]);
   });
 });
-

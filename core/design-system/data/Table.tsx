@@ -12,4 +12,3 @@ export function TableHead({ className, ...props }: React.ThHTMLAttributes<HTMLTa
 export function TableCell({ className, ...props }: React.TdHTMLAttributes<HTMLTableCellElement>) { return <td className={cn("saut-table__cell", className)} {...props} />; }
 export function TableEmpty({ colSpan, title = "Sin resultados", description }: { colSpan: number; title?: React.ReactNode; description?: React.ReactNode }) { return <tr><td colSpan={colSpan}><EmptyState title={title} description={description} /></td></tr>; }
 export function TableLoading({ rows = 3, columns = 3 }: { rows?: number; columns?: number }) { return <>{Array.from({ length: rows }, (_, row) => <tr key={row}>{Array.from({ length: columns }, (_, column) => <td key={column}><Skeleton className="block h-4 w-full" /></td>)}</tr>)}</>; }
-

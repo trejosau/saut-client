@@ -14,4 +14,3 @@ export function Tabs({ items, value, defaultValue, onValueChange, children, clas
   const active = items.find((item) => item.value === current);
   return <div className={cn("saut-tabs", className)}><div role="tablist" className={cn("saut-tabs__list", listClassName)}>{items.map((item) => <button key={item.value} type="button" role="tab" aria-selected={item.value === current} disabled={item.disabled} className={cn("saut-tabs__trigger", item.value === current && "saut-tabs__trigger--active")} onClick={() => select(item.value)}>{item.label}</button>)}</div><div role="tabpanel" className="saut-tabs__panel">{children ?? active?.content}</div></div>;
 }
-
