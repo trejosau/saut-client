@@ -210,26 +210,6 @@ canvas {
   }
 }
 
-/* =========================================================
-   Form Errors
-========================================================= */
-
-.saut-form-error-bag {
-  border: 1px solid var(--color-sale);
-  border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--color-sale) 10%, var(--color-soft-cloud));
-  padding: 12px 14px;
-  color: var(--color-sale-deep);
-}
-
-.saut-form-error-bag__title {
-  margin: 0;
-  font-size: 12px;
-  font-weight: 900;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
 .saut-form-error-bag__list {
   margin: 8px 0 0;
   padding-left: 18px;
@@ -261,6 +241,7 @@ canvas {
 }
 
 .saut-toast {
+  position: relative;
   display: flex;
   overflow: hidden;
   align-items: flex-start;
@@ -312,8 +293,8 @@ canvas {
 
 .saut-toast__close {
   display: inline-grid;
-  min-height: 1.5rem;
-  min-width: 1.5rem;
+  min-height: 2.25rem;
+  min-width: 2.25rem;
   place-items: center;
   border: 0;
   border-radius: var(--radius-sm);
@@ -328,10 +309,21 @@ canvas {
 }
 
 .saut-toast__progress {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: 100%;
   height: 2px;
   border-radius: var(--radius-full);
   background: var(--color-ink);
-  transition: width 120ms linear;
+  transform-origin: left;
+  animation: saut-toast-progress linear forwards;
+}
+
+@keyframes saut-toast-progress {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
 }
 
 .saut-toast--success .saut-toast__progress {
@@ -706,6 +698,8 @@ canvas {
 
 .saut-alert__close {
   display: inline-grid;
+  min-height: 2.25rem;
+  min-width: 2.25rem;
   place-items: center;
   border: 0;
   background: transparent;

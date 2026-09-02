@@ -2,7 +2,7 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-import { Badge, Card, Combobox, ConfirmDialog, FileUpload, LoadingState, Modal, NumberStepper, SelectField } from "@/core/design-system";
+import { Badge, Card, Combobox, ConfirmDialog, FileUpload, FormErrorBag, LoadingState, Modal, NumberStepper, SelectField, ToastProvider } from "@/core/design-system";
 
 describe("shared design-system primitives", () => {
   it("renders composable surface primitives", () => {
@@ -76,6 +76,32 @@ describe("shared design-system primitives", () => {
     await userEvent.click(screen.getByRole("button", { name: "Confirmar" }));
     expect(onConfirm).toHaveBeenCalledOnce();
     expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it("locks controlled confirmation actions and supports non-destructive intent", () => {
+    render(<ConfirmDialog open title="Guardar" message="¿Continuar?" loading destructive={false} onConfirm={vi.fn()} onClose={vi.fn()} />);
+    const confirm = screen.getByRole("button", { name: "Confirmar" });
+    expect(confirm).toBeDisabled();
+    expect(confirm).toHaveAttribute("aria-busy", "true");
+    expect(confirm).toHaveClass("bg-primary");
+    expect(screen.getByRole("button", { name: "Cancelar" })).toBeDisabled();
+  });
+
+  it("reports rejected confirmations through the global notification host", async () => {
+    const onConfirm = vi.fn().mockRejectedValue(new Error("No se pudo guardar"));
+    const onClose = vi.fn();
+    render(<ToastProvider><ConfirmDialog open title="Guardar" message="¿Continuar?" onConfirm={onConfirm} onClose={onClose} /></ToastProvider>);
+    await userEvent.click(screen.getByRole("button", { name: "Confirmar" }));
+    await waitFor(() => expect(screen.getByText("No se pudo guardar")).toBeInTheDocument());
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "Confirmar" })).not.toBeDisabled();
+  });
+
+  it("presents form errors with the shared alert primitive", () => {
+    render(<FormErrorBag bag={{ summary: ["Correo es obligatorio."], fields: {}, rawMessage: "Correo es obligatorio." }} />);
+    expect(screen.getByRole("alert")).toBeInTheDocument();
+    expect(screen.getByText("Revisa estos errores")).toBeInTheDocument();
+    expect(screen.getByText("Correo es obligatorio.")).toBeInTheDocument();
   });
 
   it("announces the shared loading state", () => {

@@ -3,6 +3,8 @@
 import * as React from "react";
 import { CheckCircle2, CircleAlert, Info, TriangleAlert, X } from "lucide-react";
 
+import { errorMessage } from "@/core/lib/api/errors";
+
 export type ToastTone = "success" | "error" | "info" | "warning";
 export type ToastInput = { title?: string; message: string; tone?: ToastTone; durationMs?: number; id?: string };
 type ToastItem = ToastInput & { id: string; tone: ToastTone; durationMs: number };
@@ -60,9 +62,7 @@ function normalize(input: ToastInput): ToastItem {
 }
 
 function asErrorMessage(error: unknown) {
-  if (error instanceof Error && error.message.trim()) return error.message;
-  if (typeof error === "string" && error.trim()) return error;
-  return "Ocurrió un error inesperado.";
+  return errorMessage(error, "Ocurrió un error inesperado.");
 }
 
 function ToastView({ toast, onDismiss }: { toast: ToastItem; onDismiss: (id: string) => void }) {
@@ -107,7 +107,10 @@ export function ToastProvider({ children }: { children?: React.ReactNode }) {
       const detail = (event as CustomEvent<ToastInput>).detail;
       if (detail?.message?.trim()) push(detail);
     };
-    const onWindowError = (event: ErrorEvent) => { if (event.message?.trim()) push({ tone: "error", title: "Error cliente", message: event.message }); };
+    const onWindowError = (event: ErrorEvent) => {
+      const message = asErrorMessage(event.error ?? event.message);
+      if (message.trim()) push({ tone: "error", title: "Error cliente", message });
+    };
     const onRejection = (event: PromiseRejectionEvent) => push({ tone: "error", title: "Error no controlado", message: asErrorMessage(event.reason) });
     window.addEventListener(TOAST_EVENT_NAME, onToast);
     window.addEventListener("error", onWindowError);
