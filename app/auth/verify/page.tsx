@@ -12,7 +12,6 @@ import {
   clearPendingLogin,
   getPendingLogin,
   saveSession,
-  syncServerSession,
   syncSessionFromServer,
 } from "@/modules/auth/client/session";
 
@@ -101,7 +100,6 @@ function VerifyPageContent() {
       }
 
       const resp = await verifyEmailLogin(pendingEmail, code);
-      await syncServerSession(resp);
       saveSession({ ...resp, email: resp.primary_email ?? pendingEmail });
       clearPendingLogin();
       router.push("/");

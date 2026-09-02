@@ -65,7 +65,9 @@ function useAuthState() {
         void syncSessionFromServer().then(sync).catch(() => undefined);
 
         const onStorage = (event: StorageEvent) => {
-            if (event.key === "login" || event.key === "saut.auth.session") sync();
+            if (event.key === "login") {
+                void syncSessionFromServer(true).then(sync).catch(() => sync());
+            }
         };
 
         window.addEventListener("storage", onStorage);

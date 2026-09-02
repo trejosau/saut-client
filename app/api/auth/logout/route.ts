@@ -1,20 +1,41 @@
 import { NextResponse } from "next/server";
-import { AUTH_COOKIE_NAMES } from "@/modules/auth/server/cookies";
+import { cookies } from "next/headers";
 
-export async function POST() {
-  const secure = process.env.NODE_ENV === "production";
-  const response = NextResponse.json({ ok: true }, { status: 200 });
-  const clearCookie = {
-    httpOnly: true,
-    secure,
-    sameSite: "lax" as const,
-    path: "/",
-    maxAge: 0,
-  };
+import { requestJson } from "@/core/lib/api/fetcher";
+import { getServerApiBaseUrl } from "@/core/lib/config/env";
+import {
+  ACCESS_TOKEN_COOKIE,
+  REFRESH_TOKEN_COOKIE,
+} from "@/modules/auth/server/cookies";
+import { clearSessionCookies, isSameOriginRequest } from "@/modules/auth/server/session";
 
-  for (const cookieName of AUTH_COOKIE_NAMES) {
-    response.cookies.set(cookieName, "", clearCookie);
+export async function POST(request: Request) {
+  if (!isSameOriginRequest(request)) {
+    return NextResponse.json({ error: "Solicitud de origen no permitido." }, { status: 403 });
   }
 
+  const cookieStore = await cookies();
+  const accessToken = cookieStore.get(ACCESS_TOKEN_COOKIE)?.value?.trim() ?? "";
+  const refreshToken = cookieStore.get(REFRESH_TOKEN_COOKIE)?.value?.trim() ?? "";
+
+  if (accessToken || refreshToken) {
+    try {
+      await requestJson<unknown>(
+        `${getServerApiBaseUrl().replace(/\/$/, "")}/auth/session/revoke`,
+        {
+          method: "POST",
+          headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+          json: refreshToken ? { refresh_token: refreshToken } : {},
+          cache: "no-store",
+        }
+      );
+    } catch {
+      // The browser must still lose its cookies when the API is unavailable.
+    }
+  }
+
+  const response = NextResponse.json({ ok: true }, { status: 200 });
+  clearSessionCookies(response);
+  response.headers.set("Cache-Control", "no-store");
   return response;
 }

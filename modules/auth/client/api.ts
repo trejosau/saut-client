@@ -24,12 +24,11 @@ type StartEmailLoginResponse = {
 type VerifyEmailLoginResponse = {
   account_id: string;
   session_id: string;
-  access_token: string;
-  refresh_token: string;
   actor_type: string;
   expires_in_sec: number;
+  session_expires_in_sec?: number;
   is_new_account: boolean;
-  primary_email?: string;
+  primary_email?: string | null;
 };
 
 async function postJson<T>(path: string, body: unknown): Promise<T> {
@@ -45,7 +44,11 @@ export async function startEmailLogin(email: string) {
 }
 
 export async function verifyEmailLogin(email: string, code: string) {
-  return postJson<VerifyEmailLoginResponse>("/auth/email/verify", { email, code });
+  return requestJson<VerifyEmailLoginResponse>("/api/auth/login", {
+    method: "POST",
+    credentials: "same-origin",
+    json: { email, code },
+  });
 }
 
 export function getGoogleLoginUnavailableReason(userAgent?: string) {
@@ -59,7 +62,8 @@ export function getGoogleLoginUnavailableReason(userAgent?: string) {
 }
 
 export function buildGoogleLoginUrl(returnTo?: string) {
-  const url = new URL("/api/auth/google/start", API_BASE_URL);
+  const origin = typeof window === "undefined" ? API_BASE_URL : window.location.origin;
+  const url = new URL("/api/auth/google/start", origin);
   if (returnTo) {
     url.searchParams.set("return_to", returnTo);
   }

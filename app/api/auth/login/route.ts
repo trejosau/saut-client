@@ -1,20 +1,40 @@
 import { NextResponse } from "next/server";
 
+import { ApiError, requestJson } from "@/core/lib/api/fetcher";
+import { getServerApiBaseUrl } from "@/core/lib/config/env";
 import {
   applySessionCookies,
-  normalizeActorType,
+  isSameOriginRequest,
+  toPublicSessionPayload,
+  type ServerSessionPayload,
 } from "@/modules/auth/server/session";
 
 type LoginPayload = {
-  account_id?: string;
-  session_id?: string;
-  access_token?: string;
-  refresh_token?: string;
-  actor_type?: string;
-  expires_in_sec?: number;
+  email?: unknown;
+  code?: unknown;
 };
 
+function backendError(error: unknown) {
+  if (error instanceof ApiError) {
+    const status = [400, 401, 403, 404, 409, 422, 429].includes(error.status)
+      ? error.status
+      : 502;
+    return NextResponse.json(
+      { error: "request_error", code: error.code, message: error.message },
+      { status }
+    );
+  }
+  return NextResponse.json(
+    { error: "request_error", code: "SERVICE_UNAVAILABLE", message: "No se pudo iniciar sesión." },
+    { status: 502 }
+  );
+}
+
 export async function POST(request: Request) {
+  if (!isSameOriginRequest(request)) {
+    return NextResponse.json({ error: "Solicitud de origen no permitido." }, { status: 403 });
+  }
+
   let payload: LoginPayload;
   try {
     payload = (await request.json()) as LoginPayload;
@@ -22,26 +42,28 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "JSON invalido." }, { status: 400 });
   }
 
-  const accountId = String(payload.account_id ?? "").trim();
-  const sessionId = String(payload.session_id ?? "").trim();
-  const accessToken = String(payload.access_token ?? "").trim();
-  const refreshToken = String(payload.refresh_token ?? "").trim();
-  const expiresInSec = Number(payload.expires_in_sec ?? 0);
-  const actorType = normalizeActorType(payload.actor_type);
-
-  if (!accountId || !sessionId || !accessToken || !refreshToken || expiresInSec <= 0) {
-    return NextResponse.json({ error: "Payload de sesion invalido." }, { status: 400 });
+  const email = typeof payload.email === "string" ? payload.email.trim() : "";
+  const code = typeof payload.code === "string" ? payload.code.trim() : "";
+  if (!email || !/^\d{6}$/.test(code)) {
+    return NextResponse.json({ error: "Correo y código inválidos." }, { status: 400 });
   }
 
-  const response = NextResponse.json({ ok: true });
-  applySessionCookies(response, {
-    account_id: accountId,
-    session_id: sessionId,
-    access_token: accessToken,
-    refresh_token: refreshToken,
-    actor_type: actorType,
-    expires_in_sec: expiresInSec,
-  });
+  let session: ServerSessionPayload;
+  try {
+    session = await requestJson<ServerSessionPayload>(
+      `${getServerApiBaseUrl().replace(/\/$/, "")}/auth/email/verify`,
+      {
+        method: "POST",
+        json: { email, code },
+        cache: "no-store",
+      }
+    );
+  } catch (error) {
+    return backendError(error);
+  }
 
+  const response = NextResponse.json(toPublicSessionPayload(session), { status: 200 });
+  applySessionCookies(response, session);
+  response.headers.set("Cache-Control", "no-store");
   return response;
 }

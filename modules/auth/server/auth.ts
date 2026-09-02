@@ -7,6 +7,7 @@ import { ACCESS_TOKEN_COOKIE } from "@/modules/auth/server/cookies";
 
 export type AuthMeResponse = {
   account_id: string;
+  session_id: string;
   actor_type: string;
   status: string;
   display_name: string | null;
@@ -15,11 +16,7 @@ export type AuthMeResponse = {
   permissions: string[];
 };
 
-export async function getServerAuthMe() {
-  const cookieStore = await cookies();
-  const accessToken = cookieStore.get(ACCESS_TOKEN_COOKIE)?.value;
-  if (!accessToken) return null;
-
+export async function getServerAuthMeWithToken(accessToken: string) {
   let payload: Partial<AuthMeResponse>;
   try {
     payload = await requestJson<Partial<AuthMeResponse>>(`${getServerApiBaseUrl().replace(/\/$/, "")}/auth/me`, {
@@ -32,6 +29,7 @@ export async function getServerAuthMe() {
   }
   return {
     account_id: String(payload.account_id ?? ""),
+    session_id: String(payload.session_id ?? ""),
     actor_type: String(payload.actor_type ?? ""),
     status: String(payload.status ?? ""),
     display_name: payload.display_name ?? null,
@@ -43,6 +41,13 @@ export async function getServerAuthMe() {
       ? payload.permissions.map((item) => String(item))
       : [],
   };
+}
+
+export async function getServerAuthMe() {
+  const cookieStore = await cookies();
+  const accessToken = cookieStore.get(ACCESS_TOKEN_COOKIE)?.value;
+  if (!accessToken) return null;
+  return getServerAuthMeWithToken(accessToken);
 }
 
 export async function requireAdminUser() {

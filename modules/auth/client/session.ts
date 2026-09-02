@@ -15,8 +15,6 @@ type PendingLogin = {
 export type AuthSession = {
   accountId: string;
   sessionId: string;
-  accessToken: string;
-  refreshToken: string;
   actorType: string;
   expiresAt: number; // epoch ms
   isNewAccount: boolean;
@@ -27,7 +25,6 @@ const PENDING_KEY = "saut.auth.pending";
 const SESSION_KEY = "saut.auth.session";
 const LOGIN_FLAG = "login";
 const SESSION_SYNC_COOLDOWN_MS = 8_000;
-const COOKIE_TOKEN_PLACEHOLDER = "server-cookie";
 
 const nowMs = () => Date.now();
 
@@ -38,6 +35,40 @@ let inFlightSessionSync: Promise<void> | null = null;
 function normalizeActorType(value: string | undefined) {
   const normalized = (value ?? "user").trim().toLowerCase();
   return normalized || "user";
+}
+
+function getSessionStorage(): Storage | null {
+  if (!isBrowser) return null;
+  try {
+    return window.sessionStorage;
+  } catch {
+    return null;
+  }
+}
+
+function getLocalStorage(): Storage | null {
+  if (!isBrowser) return null;
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
+
+function removeStoredValue(storage: Storage | null, key: string) {
+  try {
+    storage?.removeItem(key);
+  } catch {
+    // ignore storage failures
+  }
+}
+
+function setStoredValue(storage: Storage | null, key: string, value: string) {
+  try {
+    storage?.setItem(key, value);
+  } catch {
+    // ignore storage failures
+  }
 }
 
 export function savePendingLogin(input: {
@@ -56,13 +87,22 @@ export function savePendingLogin(input: {
     createdAt: nowMs(),
     expiresAt: nowMs() + Math.max(input.expiresInSec, 0) * 1000,
   };
-  window.localStorage.setItem(PENDING_KEY, JSON.stringify(payload));
+  setStoredValue(getSessionStorage(), PENDING_KEY, JSON.stringify(payload));
 }
 
 export function getPendingLogin(): PendingLogin | null {
   if (!isBrowser) return null;
-  const raw = window.localStorage.getItem(PENDING_KEY);
-  if (!raw) return null;
+  const storage = getSessionStorage();
+  let raw: string | null = null;
+  try {
+    raw = storage?.getItem(PENDING_KEY) ?? null;
+  } catch {
+    return null;
+  }
+  if (!raw) {
+    removeStoredValue(getLocalStorage(), PENDING_KEY);
+    return null;
+  }
   try {
     const parsed = JSON.parse(raw) as PendingLogin;
     if (parsed.expiresAt && parsed.expiresAt > nowMs()) {
@@ -77,57 +117,95 @@ export function getPendingLogin(): PendingLogin | null {
 
 export function clearPendingLogin() {
   if (!isBrowser) return;
-  window.localStorage.removeItem(PENDING_KEY);
+  removeStoredValue(getSessionStorage(), PENDING_KEY);
+  removeStoredValue(getLocalStorage(), PENDING_KEY);
 }
 
-function clearClientSessionStorage() {
+function clearClientSessionStorage(notifyOtherTabs = true) {
   if (!isBrowser) return;
-  window.localStorage.removeItem(SESSION_KEY);
-  window.localStorage.removeItem(PENDING_KEY);
-  window.localStorage.setItem(LOGIN_FLAG, "false");
+  removeStoredValue(getSessionStorage(), SESSION_KEY);
+  removeStoredValue(getLocalStorage(), SESSION_KEY);
+  clearPendingLogin();
+  if (notifyOtherTabs) setStoredValue(getLocalStorage(), LOGIN_FLAG, "false");
   window.dispatchEvent(new Event("saut:auth"));
 }
 
 export function saveSession(input: {
   account_id: string;
   session_id: string;
-  access_token: string;
-  refresh_token: string;
   actor_type?: string;
   expires_in_sec: number;
   is_new_account: boolean;
   email?: string;
+  // Accepted for compatibility with older callers; never persisted client-side.
+  access_token?: string;
+  refresh_token?: string;
 }) {
   if (!isBrowser) return;
   const payload: AuthSession = {
     accountId: input.account_id,
     sessionId: input.session_id,
-    accessToken: input.access_token,
-    refreshToken: input.refresh_token,
     actorType: normalizeActorType(input.actor_type),
     expiresAt: nowMs() + Math.max(input.expires_in_sec, 0) * 1000,
     isNewAccount: input.is_new_account,
     email: input.email,
   };
-  window.localStorage.setItem(SESSION_KEY, JSON.stringify(payload));
-  window.localStorage.setItem(LOGIN_FLAG, "true");
+  setStoredValue(getSessionStorage(), SESSION_KEY, JSON.stringify(payload));
+  removeStoredValue(getLocalStorage(), SESSION_KEY);
+  setStoredValue(getLocalStorage(), LOGIN_FLAG, "true");
   window.dispatchEvent(new Event("saut:auth"));
+}
+
+function readStoredSession(): string | null {
+  const sessionStorage = getSessionStorage();
+  try {
+    const current = sessionStorage?.getItem(SESSION_KEY) ?? null;
+    if (current) return current;
+  } catch {
+    return null;
+  }
+
+  const legacyStorage = getLocalStorage();
+  try {
+    const legacy = legacyStorage?.getItem(SESSION_KEY) ?? null;
+    if (legacy) {
+      removeStoredValue(legacyStorage, SESSION_KEY);
+      return legacy;
+    }
+  } catch {
+    return null;
+  }
+  return null;
 }
 
 export function getSession(): AuthSession | null {
   if (!isBrowser) return null;
-  const raw = window.localStorage.getItem(SESSION_KEY);
+  const raw = readStoredSession();
   if (!raw) return null;
   try {
-    const parsed = JSON.parse(raw) as AuthSession;
-    if (parsed.expiresAt && parsed.expiresAt > nowMs()) {
-      return parsed;
+    const parsed = JSON.parse(raw) as Partial<AuthSession>;
+    const accountId = String(parsed.accountId ?? "").trim();
+    const sessionId = String(parsed.sessionId ?? "").trim();
+    const expiresAt = Number(parsed.expiresAt ?? 0);
+    if (!accountId || !sessionId || !Number.isFinite(expiresAt) || expiresAt <= nowMs()) {
+      clearSession();
+      return null;
     }
+
+    const safeSession: AuthSession = {
+      accountId,
+      sessionId,
+      actorType: normalizeActorType(parsed.actorType),
+      expiresAt,
+      isNewAccount: parsed.isNewAccount === true,
+      email: typeof parsed.email === "string" ? parsed.email : undefined,
+    };
+    setStoredValue(getSessionStorage(), SESSION_KEY, JSON.stringify(safeSession));
+    return safeSession;
   } catch {
-    // ignore
+    clearSession();
+    return null;
   }
-  clearSession();
-  return null;
 }
 
 export function clearSession() {
@@ -138,8 +216,12 @@ export function clearSession() {
     keepalive: true,
   }).catch(() => {
     // ignore logout sync failures
+  }).finally(() => {
+    // Re-emit after the server has processed logout so other tabs do not
+    // restore a session during the revocation request.
+    setStoredValue(getLocalStorage(), LOGIN_FLAG, `false:${nowMs()}`);
   });
-  clearClientSessionStorage();
+  clearClientSessionStorage(false);
 }
 
 export function isLoggedIn() {
@@ -152,30 +234,6 @@ export function getActorType() {
 
 export function isAdmin() {
   return getActorType() === "admin";
-}
-
-export async function syncServerSession(input: {
-  account_id: string;
-  session_id: string;
-  access_token: string;
-  refresh_token: string;
-  actor_type?: string;
-  expires_in_sec: number;
-}) {
-  if (!isBrowser) return;
-
-  await requestJson<unknown>("/api/auth/login", {
-    method: "POST",
-    credentials: "same-origin",
-    json: {
-      account_id: input.account_id,
-      session_id: input.session_id,
-      access_token: input.access_token,
-      refresh_token: input.refresh_token,
-      actor_type: normalizeActorType(input.actor_type),
-      expires_in_sec: input.expires_in_sec,
-    },
-  });
 }
 
 type ServerSessionSnapshot = {
@@ -223,8 +281,6 @@ export async function syncSessionFromServer(force = false) {
     saveSession({
       account_id: accountId,
       session_id: sessionId,
-      access_token: COOKIE_TOKEN_PLACEHOLDER,
-      refresh_token: COOKIE_TOKEN_PLACEHOLDER,
       actor_type: payload.actor_type,
       expires_in_sec: expiresInSec,
       is_new_account: false,
