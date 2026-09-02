@@ -1,10 +1,21 @@
-﻿"use client";
+"use client";
 /* eslint-disable @next/next/no-img-element */
 
 import * as React from "react";
 
 import { useCart } from "@/core/cart";
-import { SelectField } from "@/core/design-system";
+import {
+  Button,
+  CheckboxControl,
+  FileUpload,
+  IconButton,
+  Modal,
+  RangeField,
+  SelectField,
+  TextAreaField,
+  TextField,
+  notify,
+} from "@/core/design-system";
 import { emitCustomizerEvent } from "@/modules/analytics/client";
 import { getSession } from "@/modules/auth/client/session";
 import {
@@ -60,12 +71,6 @@ type ScaleDragState = {
 
 type CartQualityScope = "active" | "session";
 
-const ACCEPTED_IMAGE_TYPES = new Set([
-  "image/png",
-  "image/jpeg",
-  "image/jpg",
-  "image/webp",
-]);
 const MAX_UPLOAD_MB = 8;
 
 const FONT_OPTIONS = [
@@ -478,8 +483,6 @@ export function CustomizerStudio() {
   const [scaleDragState, setScaleDragState] = React.useState<ScaleDragState | null>(null);
   const [busyAddToCart, setBusyAddToCart] = React.useState(false);
   const [qualityModalScope, setQualityModalScope] = React.useState<CartQualityScope | null>(null);
-  const [notice, setNotice] = React.useState<string | null>(null);
-  const [noticeProgress, setNoticeProgress] = React.useState(0);
 
   const printAreaRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
   const dragRafRef = React.useRef<number | null>(null);
@@ -520,23 +523,21 @@ export function CustomizerStudio() {
     }
 
     const loaded = loadCustomizerDesigns(accountId);
-    setSavedDesigns(loaded);
+    queueMicrotask(() => {
+      setSavedDesigns(loaded);
+      if (loaded.length > 0) {
+        const first = deepClone(loaded[0]);
+        setDraft(first);
+        setSelectedGarmentId(first.garments[0]?.id ?? null);
+        setSelectedElementId(null);
+        return;
+      }
 
-    if (loaded.length > 0) {
-      const first = deepClone(loaded[0]);
-      setDraft(first);
-      setSelectedGarmentId(first.garments[0]?.id ?? null);
+      const fresh = { ...createNewCustomizerDesign(), ownerAccountId: accountId };
+      setDraft(fresh);
+      setSelectedGarmentId(fresh.garments[0]?.id ?? null);
       setSelectedElementId(null);
-      return;
-    }
-
-    const fresh = {
-      ...createNewCustomizerDesign(),
-      ownerAccountId: accountId,
-    };
-    setDraft(fresh);
-    setSelectedGarmentId(fresh.garments[0]?.id ?? null);
-    setSelectedElementId(null);
+    });
   }, [accountId]);
 
   React.useEffect(() => {
@@ -547,20 +548,6 @@ export function CustomizerStudio() {
     }, 650);
     return () => window.clearTimeout(handle);
   }, [draft, accountId]);
-
-  React.useEffect(() => {
-    if (!notice) return;
-    setNoticeProgress(100);
-    const frame = window.requestAnimationFrame(() => setNoticeProgress(0));
-    const timer = window.setTimeout(() => {
-      setNotice(null);
-      setNoticeProgress(0);
-    }, 3200);
-    return () => {
-      window.cancelAnimationFrame(frame);
-      window.clearTimeout(timer);
-    };
-  }, [notice]);
 
   React.useEffect(() => {
     if (!draft) return;
@@ -589,7 +576,7 @@ export function CustomizerStudio() {
   React.useEffect(() => {
     if (!draft) return;
     if (!selectedGarmentId || !draft.garments.some((garment) => garment.id === selectedGarmentId)) {
-      setSelectedGarmentId(draft.garments[0]?.id ?? null);
+      queueMicrotask(() => setSelectedGarmentId(draft.garments[0]?.id ?? null));
     }
   }, [draft, selectedGarmentId]);
 
@@ -622,11 +609,13 @@ export function CustomizerStudio() {
 
   React.useEffect(() => {
     if (!selectedTextElement) return;
-    setTextInput(selectedTextElement.text);
-    setTextFontFamily(selectedTextElement.fontFamily);
-    setTextColorHex(selectedTextElement.colorHex);
-    setTextSizePx(selectedTextElement.fontSizePx);
-    setTextWeight(selectedTextElement.fontWeight);
+    queueMicrotask(() => {
+      setTextInput(selectedTextElement.text);
+      setTextFontFamily(selectedTextElement.fontFamily);
+      setTextColorHex(selectedTextElement.colorHex);
+      setTextSizePx(selectedTextElement.fontSizePx);
+      setTextWeight(selectedTextElement.fontWeight);
+    });
   }, [selectedTextElement]);
 
   const mutateDraft = React.useCallback(
@@ -644,7 +633,7 @@ export function CustomizerStudio() {
     if (activeGarment.visualMode !== "duo") return;
     if (draft.garments.length >= 2) return;
 
-    mutateDraft((current) => {
+    queueMicrotask(() => mutateDraft((current) => {
       if (current.garments.length >= 2) return current;
       const source =
         current.garments.find((garment) => garment.id === activeGarment.id) ??
@@ -656,7 +645,7 @@ export function CustomizerStudio() {
         garments: [...current.garments, companion],
         updatedAt: nowIso(),
       };
-    });
+    }));
   }, [activeGarment, draft, mutateDraft]);
 
   const mutateGarment = React.useCallback(
@@ -697,10 +686,10 @@ export function CustomizerStudio() {
     ) {
       return;
     }
-    mutateGarment(activeGarment.id, (garment) => ({
+    queueMicrotask(() => mutateGarment(activeGarment.id, (garment) => ({
       ...garment,
       ...sanitized,
-    }));
+    })));
   }, [activeGarment, mutateGarment]);
 
   const updateElement = React.useCallback(
@@ -739,7 +728,7 @@ export function CustomizerStudio() {
     upsertCustomizerDesign(accountId, next);
     setSavedDesigns(loadCustomizerDesigns(accountId));
     setDraft(next);
-    setNotice("Diseño guardado.");
+    notify.success("Diseño guardado.");
   }, [draft, accountId]);
 
   const createNewDesign = React.useCallback(() => {
@@ -753,7 +742,7 @@ export function CustomizerStudio() {
     setSelectedElementId(null);
     upsertCustomizerDesign(accountId, fresh);
     setSavedDesigns(loadCustomizerDesigns(accountId));
-    setNotice("Nuevo diseño creado.");
+    notify.success("Nuevo diseño creado.");
   }, [accountId]);
 
   const loadDesign = React.useCallback(
@@ -779,7 +768,7 @@ export function CustomizerStudio() {
     setDraft(deepClone(duplicated));
     setSelectedGarmentId(duplicated.garments[0]?.id ?? null);
     setSelectedElementId(null);
-    setNotice("Diseño duplicado.");
+    notify.success("Diseño duplicado.");
   }, [accountId, draft]);
 
   const deleteActiveDesign = React.useCallback(() => {
@@ -793,7 +782,7 @@ export function CustomizerStudio() {
       setDraft(next);
       setSelectedGarmentId(next.garments[0]?.id ?? null);
       setSelectedElementId(null);
-      setNotice("Diseño eliminado.");
+      notify.success("Diseño eliminado.");
       return;
     }
 
@@ -804,13 +793,13 @@ export function CustomizerStudio() {
     setDraft(fresh);
     setSelectedGarmentId(fresh.garments[0]?.id ?? null);
     setSelectedElementId(null);
-    setNotice("Diseño eliminado.");
+    notify.success("Diseño eliminado.");
   }, [accountId, draft]);
 
   const addGarment = React.useCallback(() => {
     if (!draft) return;
     if (draft.garments.length >= CUSTOMIZER_MAX_GARMENTS_PER_SESSION) {
-      setNotice("Límite de 4 diseños por sesión.");
+      notify.warning("Límite de 4 diseños por sesión.");
       return;
     }
     const garment = createNewGarment(draft.garments.length);
@@ -827,7 +816,7 @@ export function CustomizerStudio() {
   const removeActiveGarment = React.useCallback(() => {
     if (!draft || !activeGarment) return;
     if (draft.garments.length <= 1) {
-      setNotice("Debe existir al menos un diseño.");
+      notify.warning("Debe existir al menos un diseño.");
       return;
     }
 
@@ -853,24 +842,13 @@ export function CustomizerStudio() {
   }, [draft, activeGarment, mutateDraft]);
 
   const onUploadImages = React.useCallback(
-    async (event: React.ChangeEvent<HTMLInputElement>) => {
+    async (files: File[]) => {
       if (!activeGarment) return;
-      const files = Array.from(event.target.files ?? []);
-      event.currentTarget.value = "";
       if (files.length === 0) return;
 
       const nextElements = [...activeGarment.sides[selectedSide].elements];
 
       for (const file of files) {
-        if (!ACCEPTED_IMAGE_TYPES.has(file.type)) {
-          setNotice("Formato no permitido. Usa PNG/JPG/WEBP.");
-          continue;
-        }
-        if (file.size > MAX_UPLOAD_MB * 1024 * 1024) {
-          setNotice(`Cada imagen debe pesar máximo ${MAX_UPLOAD_MB}MB.`);
-          continue;
-        }
-
         const src = await fileToDataUrl(file);
         const assetId = createCustomizerElementAssetId("img");
         const jitter = nextElements.length % 2 === 0 ? -5 : 5;
@@ -997,7 +975,7 @@ export function CustomizerStudio() {
     if (!activeGarment) return;
     const text = normalizeText(textInput, 60);
     if (!text) {
-      setNotice("Escribe texto antes de agregar.");
+      notify.warning("Escribe texto antes de agregar.");
       return;
     }
 
@@ -1381,7 +1359,7 @@ export function CustomizerStudio() {
         await addGarmentToCart(garment, improveQuality);
       }
       openCart();
-      setNotice("Diseño personalizado agregado al carrito.");
+      notify.success("Diseño personalizado agregado al carrito.");
       saveNow();
     } finally {
       setBusyAddToCart(false);
@@ -1396,7 +1374,7 @@ export function CustomizerStudio() {
         await addGarmentToCart(garment, improveQuality);
       }
       openCart();
-      setNotice("Sesión completa agregada al carrito.");
+      notify.success("Sesión completa agregada al carrito.");
       saveNow();
     } finally {
       setBusyAddToCart(false);
@@ -1420,7 +1398,7 @@ export function CustomizerStudio() {
   if (!draft || !activeGarment) {
     return (
       <div className="w-full px-4 py-8 sm:px-8 lg:px-14">
-        <div className="rounded-[20px] border border-(--border) bg-[rgba(255,255,255,.45)] p-6 text-[13px] text-(--muted)">
+        <div className="rounded-[20px] border border-hairline bg-[rgba(255,255,255,.45)] p-6 text-[13px] text-mute">
           Cargando personalizador...
         </div>
       </div>
@@ -1474,10 +1452,10 @@ export function CustomizerStudio() {
   return (
     <main className="min-h-[calc(100dvh-104px)] w-full p-2.5 sm:p-3 lg:h-[calc(100dvh-104px)] lg:overflow-hidden">
       <div className="flex h-full flex-col gap-3">
-      <section className="shrink-0 rounded-[8px] bg-(--saut-navy) p-4 text-white">
+      <section className="shrink-0 rounded-[8px] bg-charcoal p-4 text-white">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-[10px] font-black uppercase text-(--saut-yellow)">
+            <p className="text-[10px] font-black uppercase text-primary">
               Estudio SAUT
             </p>
             <h1 className="saut-display mt-1 text-[24px] uppercase sm:text-[30px]">
@@ -1489,46 +1467,30 @@ export function CustomizerStudio() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={saveNow}
-              className="h-11 rounded-[7px] border border-white/25 bg-white/10 px-4 text-[10px] font-black uppercase text-white hover:bg-white/20"
-            >
+            <Button type="button" size="sm" shadow="none" caps className="h-11 rounded-[7px] border border-white/25 bg-white/10 px-4 text-[10px] text-white hover:bg-white/20" onClick={saveNow}>
               Guardar ahora
-            </button>
-            <button
-              type="button"
-              onClick={createNewDesign}
-              className="h-11 rounded-[7px] border border-(--saut-yellow) bg-(--saut-yellow) px-4 text-[10px] font-black uppercase text-(--saut-black) hover:bg-white"
-            >
+            </Button>
+            <Button type="button" size="sm" shadow="none" caps variant="primary" className="h-11 rounded-[7px] border border-primary px-4 text-[10px] hover:bg-white" onClick={createNewDesign}>
               Nuevo diseño
-            </button>
-            <button
-              type="button"
-              onClick={duplicateActiveDesign}
-              className="h-11 rounded-[7px] border border-white/25 bg-white/10 px-4 text-[10px] font-black uppercase text-white hover:bg-white/20"
-            >
+            </Button>
+            <Button type="button" size="sm" shadow="none" caps className="h-11 rounded-[7px] border border-white/25 bg-white/10 px-4 text-[10px] text-white hover:bg-white/20" onClick={duplicateActiveDesign}>
               Duplicar
-            </button>
-            <button
-              type="button"
-              onClick={deleteActiveDesign}
-              className="h-11 rounded-[7px] border border-red-300/50 bg-red-950/30 px-4 text-[10px] font-black uppercase text-red-100 hover:bg-red-950/50"
-            >
+            </Button>
+            <Button type="button" size="sm" shadow="none" caps variant="danger" className="h-11 rounded-[7px] border border-red-300/50 bg-red-950/30 px-4 text-[10px] text-red-100 hover:bg-red-950/50" onClick={deleteActiveDesign}>
               Eliminar
-            </button>
+            </Button>
           </div>
         </div>
 
       </section>
 
       <section className="grid min-h-0 flex-1 gap-3 lg:grid-cols-[240px_minmax(0,1fr)_300px]">
-        <aside className="order-2 flex min-h-0 flex-col rounded-[8px] border border-(--border) bg-white p-2.5 lg:order-1 lg:overflow-auto">
-          <div className="rounded-[12px] border border-(--border) bg-white/80 p-2.5">
-            <h2 className="text-[12px] font-black uppercase tracking-[0.12em] text-(--text)">
+        <aside className="order-2 flex min-h-0 flex-col rounded-[8px] border border-hairline bg-white p-2.5 lg:order-1 lg:overflow-auto">
+          <div className="rounded-[12px] border border-hairline bg-white/80 p-2.5">
+            <h2 className="text-[12px] font-black uppercase tracking-[0.12em] text-ink">
               Resumen
             </h2>
-            <p className="mt-1 text-[11px] font-black text-(--saut-navy)">
+            <p className="mt-1 text-[11px] font-black text-charcoal">
               Precio actual: ${formatMoney(designTotalPrice)}
             </p>
             <p className="text-[10px] text-[rgba(8,10,13,.62)]">
@@ -1542,7 +1504,7 @@ export function CustomizerStudio() {
                     key={`summary-${garment.id}`}
                     className="rounded-[10px] border border-[rgba(8,10,13,.12)] bg-white/75 px-2 py-1.5"
                   >
-                    <p className="text-[10px] font-black uppercase tracking-[0.08em] text-(--text)">
+                    <p className="text-[10px] font-black uppercase tracking-[0.08em] text-ink">
                       Diseño {idx + 1}
                     </p>
                     <p className="text-[10px] text-[rgba(8,10,13,.68)]">
@@ -1558,10 +1520,10 @@ export function CustomizerStudio() {
           </div>
 
           <div className="mt-2.5 flex items-center justify-between gap-2">
-            <h2 className="text-[13px] font-black uppercase tracking-[0.12em] text-(--text)">
+            <h2 className="text-[13px] font-black uppercase tracking-[0.12em] text-ink">
               Mis diseños
             </h2>
-            <span className="rounded-full border border-(--border) bg-white/75 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.1em] text-(--text)">
+            <span className="rounded-full border border-hairline bg-white/75 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.1em] text-ink">
               {savedDesigns.length}
             </span>
           </div>
@@ -1578,10 +1540,10 @@ export function CustomizerStudio() {
                     "w-full rounded-[12px] border px-3 py-2.5 text-left transition",
                     active
                       ? "border-[rgba(5,122,168,.38)] bg-[rgba(5,122,168,.14)]"
-                      : "border-(--border) bg-white/75 hover:bg-white",
+                      : "border-hairline bg-white/75 hover:bg-white",
                   ].join(" ")}
                 >
-                  <p className="truncate text-[11px] font-black uppercase tracking-[0.10em] text-(--text)">
+                  <p className="truncate text-[11px] font-black uppercase tracking-[0.10em] text-ink">
                     {design.title}
                   </p>
                   <p className="mt-1 text-[10px] tracking-[0.02em] text-[rgba(8,10,13,.62)]">
@@ -1597,11 +1559,10 @@ export function CustomizerStudio() {
             })}
           </div>
 
-          <div className="mt-3 shrink-0 rounded-[12px] border border-(--border) bg-white/70 p-2.5">
-            <label className="text-[10px] font-black uppercase tracking-[0.12em] text-(--text)">
-              Título del diseño
-            </label>
-            <input
+          <div className="mt-3 shrink-0 rounded-[12px] border border-hairline bg-white/70 p-2.5">
+            <TextField
+              size="sm"
+              label="Título del diseño"
               value={draft.title}
               onChange={(event) =>
                 mutateDraft((current) => ({
@@ -1611,7 +1572,8 @@ export function CustomizerStudio() {
                 }))
               }
               maxLength={90}
-              className="mt-1 h-10 w-full rounded-[10px] border border-(--border) bg-white px-3 text-[12px]"
+              shellClassName="h-10 rounded-[10px] bg-white px-0"
+              inputClassName="px-3 text-[12px]"
             />
             <p className="mt-1 text-[10px] tracking-[0.02em] text-[rgba(8,10,13,.58)]">
               Guardado {accountId ? "ligado a tu cuenta" : "local para invitado"}.
@@ -1619,15 +1581,18 @@ export function CustomizerStudio() {
           </div>
         </aside>
 
-        <section className="order-1 flex min-h-0 flex-col overflow-hidden rounded-[8px] border border-(--border) bg-white p-2 lg:order-2">
+        <section className="order-1 flex min-h-0 flex-col overflow-hidden rounded-[8px] border border-hairline bg-white p-2 lg:order-2">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex flex-wrap items-center gap-2">
               {draft.garments.map((garment, index) => {
                 const active = garment.id === activeGarment.id;
                 return (
-                  <button
+                  <Button
                     key={garment.id}
                     type="button"
+                    size="pill"
+                    shadow="none"
+                    caps
                     onClick={() => {
                       setSelectedGarmentId(garment.id);
                       setSelectedElementId(null);
@@ -1635,30 +1600,22 @@ export function CustomizerStudio() {
                     className={[
                       "h-9 rounded-[999px] border px-3 text-[10px] font-black uppercase tracking-[0.12em]",
                       active
-                        ? "border-[rgba(5,122,168,.38)] bg-[rgba(5,122,168,.16)] text-(--saut-navy)"
-                        : "border-(--border) bg-white/80 text-(--text)",
+                        ? "border-[rgba(5,122,168,.38)] bg-[rgba(5,122,168,.16)] text-charcoal"
+                        : "border-hairline bg-white/80 text-ink",
                     ].join(" ")}
                   >
                     {`Diseño ${index + 1}`}
-                  </button>
+                  </Button>
                 );
               })}
             </div>
             <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={addGarment}
-                className="h-9 rounded-[999px] border border-(--border) bg-white/80 px-3 text-[10px] font-black uppercase tracking-[0.12em]"
-              >
+              <Button type="button" size="pill" shadow="none" caps className="h-9 border border-hairline bg-white/80 px-3 text-[10px]" onClick={addGarment}>
                 + Diseño
-              </button>
-              <button
-                type="button"
-                onClick={removeActiveGarment}
-                className="h-9 rounded-[999px] border border-[rgba(168,43,43,.35)] bg-[rgba(168,43,43,.1)] px-3 text-[10px] font-black uppercase tracking-[0.12em] text-[rgb(120,24,24)]"
-              >
+              </Button>
+              <Button type="button" size="pill" shadow="none" caps variant="danger" className="h-9 border border-[rgba(168,43,43,.35)] bg-[rgba(168,43,43,.1)] px-3 text-[10px] text-[rgb(120,24,24)]" onClick={removeActiveGarment}>
                 Quitar diseño
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -1764,8 +1721,11 @@ export function CustomizerStudio() {
           </div>
 
           <div className="mt-2.5 flex flex-wrap items-center gap-2">
-            <button
+            <Button
               type="button"
+              size="pill"
+              shadow="none"
+              caps
               onClick={() => {
                 setSelectedSide("front");
                 setSelectedElementId(null);
@@ -1773,14 +1733,17 @@ export function CustomizerStudio() {
               className={[
                 "h-9 rounded-[999px] border px-3 text-[10px] font-black uppercase tracking-[0.12em]",
                 selectedSide === "front"
-                  ? "border-[rgba(5,122,168,.38)] bg-[rgba(5,122,168,.16)] text-(--saut-navy)"
-                  : "border-(--border) bg-white/80 text-(--text)",
+                  ? "border-[rgba(5,122,168,.38)] bg-[rgba(5,122,168,.16)] text-charcoal"
+                  : "border-hairline bg-white/80 text-ink",
               ].join(" ")}
             >
               Frente
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              size="pill"
+              shadow="none"
+              caps
               onClick={() => {
                 setSelectedSide("back");
                 setSelectedElementId(null);
@@ -1788,14 +1751,17 @@ export function CustomizerStudio() {
               className={[
                 "h-9 rounded-[999px] border px-3 text-[10px] font-black uppercase tracking-[0.12em]",
                 selectedSide === "back"
-                  ? "border-[rgba(5,122,168,.38)] bg-[rgba(5,122,168,.16)] text-(--saut-navy)"
-                  : "border-(--border) bg-white/80 text-(--text)",
+                  ? "border-[rgba(5,122,168,.38)] bg-[rgba(5,122,168,.16)] text-charcoal"
+                  : "border-hairline bg-white/80 text-ink",
               ].join(" ")}
             >
               Espalda
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              size="pill"
+              shadow="none"
+              caps
               onClick={() =>
                 mutateDraft((current) => {
                   const index = current.garments.findIndex(
@@ -1842,10 +1808,10 @@ export function CustomizerStudio() {
                   };
                 })
               }
-              className="h-9 rounded-[999px] border border-(--border) bg-white/80 px-3 text-[10px] font-black uppercase tracking-[0.12em]"
+              className="h-9 rounded-[999px] border border-hairline bg-white/80 px-3 text-[10px] font-black uppercase tracking-[0.12em]"
             >
               {activeGarment.visualMode === "single" ? "Modo duo" : "Modo individual"}
-            </button>
+            </Button>
           </div>
 
           <div
@@ -1869,7 +1835,7 @@ export function CustomizerStudio() {
                     if (!sideIsActive) setSelectedElementId(null);
                   }}
                   className={[
-                    "relative w-full overflow-hidden rounded-[18px] border border-(--border)",
+                    "relative w-full overflow-hidden rounded-[18px] border border-hairline",
                     isDuoMode
                       ? "mx-auto h-[clamp(300px,44vh,460px)] max-w-[460px]"
                       : "mx-auto h-[clamp(360px,56vh,620px)] max-w-[760px]",
@@ -1887,7 +1853,7 @@ export function CustomizerStudio() {
                     }}
                     draggable={false}
                   />
-                  <div className="absolute left-2 top-2 rounded-[999px] border border-(--border) bg-white/85 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.11em] text-(--text)">
+                  <div className="absolute left-2 top-2 rounded-[999px] border border-hairline bg-white/85 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.11em] text-ink">
                     {label}
                   </div>
                   {sideIsActive ? (
@@ -1997,44 +1963,47 @@ export function CustomizerStudio() {
             setDragState(null);
             setScaleDragState(null);
           }}
-          className="order-3 min-h-0 overflow-auto rounded-[8px] border border-(--border) bg-white p-2.5"
+          className="order-3 min-h-0 overflow-auto rounded-[8px] border border-hairline bg-white p-2.5"
         >
-          <h2 className="text-[13px] font-black uppercase tracking-[0.12em] text-(--text)">
+          <h2 className="text-[13px] font-black uppercase tracking-[0.12em] text-ink">
             Herramientas
           </h2>
 
-          <div className="mt-3 rounded-[12px] border border-(--border) bg-white/78 p-3">
-            <p className="text-[10px] font-black uppercase tracking-[0.12em] text-(--text)">
-              Imágenes
-            </p>
-            <label className="mt-2 inline-flex h-10 w-full cursor-pointer items-center justify-center rounded-[10px] border border-(--border) bg-white text-[11px] font-black uppercase tracking-[0.12em] text-(--text)">
-              Subir imágenes
-              <input
-                type="file"
-                accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp"
-                multiple
-                onChange={onUploadImages}
-                className="hidden"
-              />
-            </label>
-            <div className="mt-2 rounded-[10px] border border-(--border) bg-[rgba(245,246,248,.86)] p-2">
+          <div className="mt-3 rounded-[12px] border border-hairline bg-white/78 p-3">
+            <FileUpload
+              label="Imágenes"
+              acceptedTypes={["image/png", "image/jpeg", "image/webp"]}
+              maxSize={MAX_UPLOAD_MB * 1024 * 1024}
+              multiple
+              value={[]}
+              showPreview={false}
+              onChange={(files) => void onUploadImages(files)}
+              onError={(message) => notify.warning(message)}
+              dropLabel="Arrastra imágenes aquí o selecciona para explorar"
+              className="mt-0"
+            />
+            <div className="mt-2 rounded-[10px] border border-hairline bg-[rgba(245,246,248,.86)] p-2">
               <div className="flex items-center justify-between gap-2">
-                <p className="text-[10px] font-black uppercase tracking-[0.1em] text-(--text)">
+                <p className="text-[10px] font-black uppercase tracking-[0.1em] text-ink">
                   {selectedSide === "front" ? "Frontal" : "Trasera"}: {activeSideImages.length}
                 </p>
-                <button
+                <Button
                   type="button"
+                  size="sm"
+                  shadow="none"
+                  caps
+                  variant="danger"
                   onClick={removeAllSideImages}
                   disabled={activeSideImages.length === 0}
                   className={[
                     "rounded-[8px] border px-2 py-1 text-[9px] font-black uppercase tracking-[0.1em]",
                     activeSideImages.length === 0
-                      ? "cursor-not-allowed border-(--border) bg-white/70 text-[rgba(8,10,13,.4)]"
+                      ? "cursor-not-allowed border-hairline bg-white/70 text-[rgba(8,10,13,.4)]"
                       : "border-[rgba(168,43,43,.35)] bg-[rgba(168,43,43,.10)] text-[rgb(120,24,24)]",
                   ].join(" ")}
                 >
                   Quitar todas
-                </button>
+                </Button>
               </div>
               <p className="mt-1 text-[9px] text-[rgba(8,10,13,.58)]">
                 Total en este diseño: {activeGarmentImageCounts.total} imágenes
@@ -2044,7 +2013,7 @@ export function CustomizerStudio() {
                   activeSideImages.map((image) => (
                     <div
                       key={`img-${image.id}`}
-                      className="flex items-center gap-2 rounded-[8px] border border-(--border) bg-white px-2 py-1"
+                      className="flex items-center gap-2 rounded-[8px] border border-hairline bg-white px-2 py-1"
                     >
                       <img
                         src={image.src}
@@ -2054,16 +2023,18 @@ export function CustomizerStudio() {
                       <p className="min-w-0 flex-1 truncate text-[10px] text-[rgba(8,10,13,.72)]">
                         {image.fileName}
                       </p>
-                      <button
-                        type="button"
+                      <IconButton
+                        size="icon"
+                        shadow="none"
+                        variant="danger"
+                        label="Eliminar imagen"
                         onClick={() =>
                           deleteElementById(activeGarment.id, selectedSide, image.id)
                         }
-                        className="h-6 w-6 rounded-full border border-[rgba(168,43,43,.35)] bg-[rgba(168,43,43,.10)] text-[10px] font-black text-[rgb(120,24,24)]"
-                        aria-label="Eliminar imagen"
+                        className="h-6 w-6 rounded-full border border-[rgba(168,43,43,.35)] bg-[rgba(168,43,43,.10)] p-0 text-[10px] text-[rgb(120,24,24)]"
                       >
                         x
-                      </button>
+                      </IconButton>
                     </div>
                   ))
                 ) : (
@@ -2073,35 +2044,40 @@ export function CustomizerStudio() {
             </div>
           </div>
 
-          <div className="mt-3 rounded-[12px] border border-(--border) bg-white/78 p-3">
-            <label className="text-[10px] font-black uppercase tracking-[0.12em] text-(--text)">
-              Nota ({activeGarment.note.length}/{CUSTOMIZER_MAX_NOTE_LENGTH})
-              <textarea
-                rows={3}
-                value={activeGarment.note}
-                onChange={(event) =>
-                  mutateGarment(activeGarment.id, (garment) => ({
-                    ...garment,
-                    note: normalizeText(event.target.value, CUSTOMIZER_MAX_NOTE_LENGTH),
-                  }))
-                }
-                className="mt-1 min-h-[74px] w-full resize-y rounded-[10px] border border-(--border) bg-white px-3 py-2 text-[12px]"
-              />
-            </label>
+          <div className="mt-3 rounded-[12px] border border-hairline bg-white/78 p-3">
+            <TextAreaField
+              size="sm"
+              rows={3}
+              label={`Nota (${activeGarment.note.length}/${CUSTOMIZER_MAX_NOTE_LENGTH})`}
+              value={activeGarment.note}
+              onChange={(event) =>
+                mutateGarment(activeGarment.id, (garment) => ({
+                  ...garment,
+                  note: normalizeText(event.target.value, CUSTOMIZER_MAX_NOTE_LENGTH),
+                }))
+              }
+              shellClassName="rounded-[10px] bg-white px-0 py-0"
+              textareaClassName="min-h-[74px] px-3 py-2 text-[12px]"
+              wrapperClassName="min-w-0"
+            />
           </div>
 
-          <div className="mt-3 rounded-[12px] border border-(--border) bg-white/78 p-3">
-            <p className="text-[10px] font-black uppercase tracking-[0.12em] text-(--text)">
+          <div className="mt-3 rounded-[12px] border border-hairline bg-white/78 p-3">
+            <p className="text-[10px] font-black uppercase tracking-[0.12em] text-ink">
               Texto
             </p>
-            <input
+            <TextField
+              size="sm"
               value={textInput}
               onChange={(event) => onTextInputChange(event.target.value)}
               maxLength={60}
               placeholder="Escribe texto"
-              className="mt-2 h-10 w-full rounded-[10px] border border-(--border) bg-white px-3 text-[12px]"
+              aria-label="Texto para agregar"
+              wrapperClassName="mt-2"
+              shellClassName="h-10 rounded-[10px] bg-white px-0"
+              inputClassName="px-3 text-[12px]"
             />
-            <div className="mt-2 rounded-[10px] border border-(--border) bg-[rgba(245,246,248,.9)] px-3 py-2">
+            <div className="mt-2 rounded-[10px] border border-hairline bg-[rgba(245,246,248,.9)] px-3 py-2">
               <p className="text-[9px] font-black uppercase tracking-[0.1em] text-[rgba(8,10,13,.58)]">
                 Previsualizacion
               </p>
@@ -2132,141 +2108,141 @@ export function CustomizerStudio() {
                 selectClassName="text-[11px]"
                 wrapperClassName="min-w-0"
               />
-              <input
-                type="color"
-                value={textColorHex}
-                onChange={(event) => onTextColorChange(event.target.value)}
-                className="h-10 w-full rounded-[10px] border border-(--border) bg-white px-2"
-              />
-            </div>
-            <div className="mt-2 grid gap-2 sm:grid-cols-2">
-              <label className="text-[10px] font-black uppercase tracking-[0.10em] text-(--text)">
-                Tamaño
+              <label className="saut-field">
+                <span className="saut-form-label">Color</span>
                 <input
-                  type="range"
-                  min={24}
-                  max={180}
-                  value={textSizePx}
-                  onChange={(event) => onTextSizeChange(Number(event.target.value))}
-                  className="mt-1 w-full"
+                  type="color"
+                  value={textColorHex}
+                  onChange={(event) => onTextColorChange(event.target.value)}
+                  className="saut-color-control h-10 w-full rounded-[10px] border border-hairline bg-white px-2"
+                  aria-label="Color del texto"
                 />
               </label>
-              <label className="inline-flex items-center gap-2 rounded-[10px] border border-(--border) bg-white px-3 py-2 text-[10px] font-black uppercase tracking-[0.10em] text-(--text)">
-                <input
-                  type="checkbox"
+            </div>
+            <div className="mt-2 grid gap-2 sm:grid-cols-2">
+              <RangeField
+                label="Tamaño"
+                min={24}
+                max={180}
+                value={textSizePx}
+                onChange={(event) => onTextSizeChange(Number(event.target.value))}
+                className="mt-1 w-full"
+                wrapperClassName="min-w-0"
+                output={`${textSizePx}px`}
+              />
+              <label className="inline-flex items-center gap-2 rounded-[10px] border border-hairline bg-white px-3 py-2 text-[10px] font-black uppercase tracking-[0.10em] text-ink">
+                <CheckboxControl
                   checked={textWeight >= 700}
                   onChange={(event) => onTextWeightChange(event.target.checked ? 900 : 400)}
                 />
-                Bold
+                <span>Bold</span>
               </label>
             </div>
-            <button
+            <Button
               type="button"
+              size="sm"
+              shadow="none"
+              variant="primary"
+              fullWidth
+              className="mt-2 h-9 rounded-[10px] border border-hairline bg-primary text-[10px]"
               onClick={onAddText}
-              className="mt-2 h-9 w-full rounded-[10px] border border-(--border) bg-(--saut-yellow) text-[10px] font-black uppercase tracking-[0.12em] text-(--saut-black)"
             >
               {selectedTextElement ? "Agregar texto nuevo" : "Agregar texto"}
-            </button>
+            </Button>
           </div>
 
-          <div className="mt-3 rounded-[12px] border border-(--border) bg-white/78 p-3">
-            <p className="text-[10px] font-black uppercase tracking-[0.12em] text-(--text)">
+          <div className="mt-3 rounded-[12px] border border-hairline bg-white/78 p-3">
+            <p className="text-[10px] font-black uppercase tracking-[0.12em] text-ink">
               Elemento seleccionado
             </p>
 
             {selectedElement ? (
               <div className="mt-2 space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-[0.10em] text-(--text)">
-                  Escala ({selectedElement.scale.toFixed(2)}x)
-                  <input
-                    type="range"
-                    min={0.3}
-                    max={5}
-                    step={0.01}
-                    value={selectedElement.scale}
-                    onChange={(event) =>
-                      updateElement(
-                        activeGarment.id,
-                        selectedSide,
-                        selectedElement.id,
-                        (element) => ({
-                          ...element,
-                          scale: Number(event.target.value),
-                        })
-                      )
-                    }
-                    className="mt-1 w-full"
-                  />
-                </label>
-                <div>
-                  <div className="flex items-center justify-between gap-2 text-[10px] font-black uppercase tracking-[0.10em] text-(--text)">
-                    <span>Rotación ({Math.round(selectedElement.rotationDeg)}°)</span>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        updateElement(
-                          activeGarment.id,
-                          selectedSide,
-                          selectedElement.id,
-                          (element) => ({
-                            ...element,
-                            rotationDeg: 0,
-                          })
-                        )
-                      }
-                      className="rounded-[7px] border border-(--border) bg-white px-2 py-0.5 text-[9px]"
-                    >
-                      0°
-                    </button>
-                  </div>
-                  <input
-                    type="range"
-                    min={-180}
-                    max={180}
-                    step={1}
-                    value={selectedElement.rotationDeg}
-                    onChange={(event) =>
-                      updateElement(
-                        activeGarment.id,
-                        selectedSide,
-                        selectedElement.id,
-                        (element) => ({
-                          ...element,
-                          rotationDeg: Number(event.target.value),
-                        })
-                      )
-                    }
-                    className="mt-1 w-full"
-                  />
-                </div>
+                <RangeField
+                  label="Escala"
+                  min={0.3}
+                  max={5}
+                  step={0.01}
+                  value={selectedElement.scale}
+                  onChange={(event) =>
+                    updateElement(
+                      activeGarment.id,
+                      selectedSide,
+                      selectedElement.id,
+                      (element) => ({ ...element, scale: Number(event.target.value) })
+                    )
+                  }
+                  className="mt-1 w-full"
+                  output={`${selectedElement.scale.toFixed(2)}x`}
+                />
+                <RangeField
+                  label="Rotación"
+                  min={-180}
+                  max={180}
+                  step={1}
+                  value={selectedElement.rotationDeg}
+                  onChange={(event) =>
+                    updateElement(
+                      activeGarment.id,
+                      selectedSide,
+                      selectedElement.id,
+                      (element) => ({ ...element, rotationDeg: Number(event.target.value) })
+                    )
+                  }
+                  className="mt-1 w-full"
+                  output={
+                    <>
+                      {Math.round(selectedElement.rotationDeg)}°{" "}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          updateElement(
+                            activeGarment.id,
+                            selectedSide,
+                            selectedElement.id,
+                            (element) => ({ ...element, rotationDeg: 0 })
+                          )
+                        }
+                        className="rounded-[7px] border border-hairline bg-white px-2 py-0.5 text-[9px]"
+                      >
+                        0°
+                      </button>
+                    </>
+                  }
+                />
                 {selectedElement.type === "text" ? (
-                  <label className="text-[10px] font-black uppercase tracking-[0.10em] text-(--text)">
-                    Texto
-                    <input
-                      value={selectedElement.text}
-                      onChange={(event) =>
-                        updateElement(
-                          activeGarment.id,
-                          selectedSide,
-                          selectedElement.id,
-                          (element) => ({
-                            ...(element as CustomizerTextElement),
-                            text: normalizeText(event.target.value, 60),
-                          })
-                        )
-                      }
-                      maxLength={60}
-                      className="mt-1 h-9 w-full rounded-[10px] border border-(--border) bg-white px-3 text-[12px]"
-                    />
-                  </label>
+                  <TextField
+                    size="sm"
+                    label="Texto"
+                    value={selectedElement.text}
+                    onChange={(event) =>
+                      updateElement(
+                        activeGarment.id,
+                        selectedSide,
+                        selectedElement.id,
+                        (element) => ({
+                          ...(element as CustomizerTextElement),
+                          text: normalizeText(event.target.value, 60),
+                        })
+                      )
+                    }
+                    maxLength={60}
+                    wrapperClassName="mt-1"
+                    shellClassName="h-9 rounded-[10px] bg-white px-0"
+                    inputClassName="px-3 text-[12px]"
+                  />
                 ) : null}
-                <button
+                <Button
                   type="button"
+                  size="sm"
+                  shadow="none"
+                  variant="danger"
+                  fullWidth
+                  className="h-9 rounded-[10px] border border-[rgba(168,43,43,.35)] bg-[rgba(168,43,43,.10)] text-[10px] text-[rgb(120,24,24)]"
                   onClick={deleteSelectedElement}
-                  className="h-9 w-full rounded-[10px] border border-[rgba(168,43,43,.35)] bg-[rgba(168,43,43,.10)] text-[10px] font-black uppercase tracking-[0.12em] text-[rgb(120,24,24)]"
                 >
                   Eliminar elemento
-                </button>
+                </Button>
               </div>
             ) : (
               <p className="mt-2 text-[11px] text-[rgba(8,10,13,.62)]">
@@ -2276,91 +2252,85 @@ export function CustomizerStudio() {
           </div>
 
           <div className="mt-4 space-y-2">
-            <button
+            <Button
               type="button"
+              size="sm"
+              shadow="none"
+              variant="primary"
+              fullWidth
               disabled={busyAddToCart}
               onClick={() => setQualityModalScope("active")}
               className={[
-                "h-10 w-full rounded-[12px] border border-(--border) text-[11px] font-black uppercase tracking-[0.12em]",
+                "h-10 w-full rounded-[12px] border border-hairline text-[11px] font-black uppercase tracking-[0.12em]",
                 busyAddToCart
                   ? "cursor-wait bg-[rgba(255,255,255,.70)] text-[rgba(8,10,13,.55)]"
-                  : "bg-(--saut-yellow) text-(--saut-black)",
+                  : "bg-primary text-ink",
               ].join(" ")}
             >
               Agregar diseño al carrito
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              size="sm"
+              shadow="none"
+              variant="blue"
+              fullWidth
               disabled={busyAddToCart}
               onClick={() => setQualityModalScope("session")}
               className={[
-                "h-10 w-full rounded-[12px] border border-(--border) text-[11px] font-black uppercase tracking-[0.12em]",
+                "h-10 w-full rounded-[12px] border border-hairline text-[11px] font-black uppercase tracking-[0.12em]",
                 busyAddToCart
                   ? "cursor-wait bg-[rgba(255,255,255,.70)] text-[rgba(8,10,13,.55)]"
-                  : "bg-(--saut-blue) text-white",
+                  : "bg-info text-white",
               ].join(" ")}
             >
               Agregar sesión completa
-            </button>
+            </Button>
           </div>
         </aside>
       </section>
-      {qualityModalScope ? (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-[rgba(8,10,13,.5)] p-3">
-          <div className="w-full max-w-[520px] rounded-[16px] border border-(--border) bg-white p-4 shadow-[0_18px_44px_rgba(0,0,0,.28)]">
-            <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[rgba(8,10,13,.56)]">
-              Calidad de impresión
-            </p>
-            <h3 className="mt-1 text-[16px] font-black uppercase tracking-[0.04em] text-(--text)">
-              ¿Cómo quieres enviarlo?
-            </h3>
-            <p className="mt-2 text-[12px] text-[rgba(8,10,13,.68)]">
-              Puedes enviarlo tal cual lo subiste o pedir que nuestros diseñadores mejoren un poco
-              la calidad de tus diseños antes de producción.
-            </p>
-            <div className="mt-4 grid gap-2 sm:grid-cols-2">
-              <button
-                type="button"
-                disabled={busyAddToCart}
-                onClick={() => void confirmQualityChoice(false)}
-                className="h-10 rounded-[10px] border border-(--border) bg-white text-[10px] font-black uppercase tracking-[0.12em] text-(--text)"
-              >
-                Tal cual lo subí
-              </button>
-              <button
-                type="button"
-                disabled={busyAddToCart}
-                onClick={() => void confirmQualityChoice(true)}
-                className="h-10 rounded-[10px] border border-(--border) bg-(--saut-yellow) text-[10px] font-black uppercase tracking-[0.12em] text-(--saut-black)"
-              >
-                Mejorar calidad
-              </button>
-            </div>
-            <button
-              type="button"
+      <Modal
+        open={qualityModalScope !== null}
+        onClose={() => setQualityModalScope(null)}
+        title="¿Cómo quieres enviarlo?"
+        description="Calidad de impresión"
+        size="sm"
+        contentClassName="text-[12px] text-[rgba(8,10,13,.68)]"
+        footer={
+          <div className="grid w-full gap-2 sm:grid-cols-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={busyAddToCart}
+              isLoading={busyAddToCart}
+              onClick={() => void confirmQualityChoice(false)}
+            >
+              Tal cual lo subí
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              disabled={busyAddToCart}
+              onClick={() => void confirmQualityChoice(true)}
+            >
+              Mejorar calidad
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              fullWidth
+              className="sm:col-span-2"
               disabled={busyAddToCart}
               onClick={() => setQualityModalScope(null)}
-              className="mt-2 h-9 w-full rounded-[10px] border border-(--border) bg-white/80 text-[10px] font-black uppercase tracking-[0.12em] text-(--text)"
             >
               Cancelar
-            </button>
+            </Button>
           </div>
-        </div>
-      ) : null}
-      {notice ? (
-        <div className="pointer-events-none fixed bottom-4 right-4 z-50 w-[320px] max-w-[calc(100vw-24px)] rounded-[12px] border border-[rgba(8,10,13,.16)] bg-[rgba(255,255,255,.94)] px-3 py-2 shadow-[0_12px_34px_rgba(0,0,0,.18)]">
-          <p className="text-[11px] font-semibold text-[rgba(8,10,13,.86)]">{notice}</p>
-          <div className="mt-2 h-1 overflow-hidden rounded-full bg-[rgba(8,10,13,.12)]">
-            <div
-              className="h-full bg-(--saut-yellow)"
-              style={{
-                width: `${noticeProgress}%`,
-                transition: "width 3200ms linear",
-              }}
-            />
-          </div>
-        </div>
-      ) : null}
+        }
+      >
+        Puedes enviarlo tal cual lo subiste o pedir que nuestros diseñadores mejoren un poco la
+        calidad de tus diseños antes de producción.
+      </Modal>
       </div>
     </main>
   );

@@ -1,5 +1,8 @@
 "use client";
 
+import { buildApiUrl } from "@/core/lib/api/endpoints";
+import { requestJson } from "@/core/lib/api/fetcher";
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
 const EMBEDDED_BROWSER_PATTERNS = [
   /Instagram/i,
@@ -30,26 +33,11 @@ type VerifyEmailLoginResponse = {
 };
 
 async function postJson<T>(path: string, body: unknown): Promise<T> {
-  const url = `${API_BASE_URL}${path.startsWith("/") ? "" : "/"}${path}`;
-  const resp = await fetch(url, {
+  const url = buildApiUrl(path, undefined, API_BASE_URL);
+  return requestJson<T>(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    json: body,
   });
-
-  if (!resp.ok) {
-    const text = await resp.text();
-    let message = text || `Request failed (${resp.status})`;
-    try {
-      const parsed = JSON.parse(text);
-      message = parsed?.message ?? parsed?.error ?? message;
-    } catch {
-      // ignore parse errors
-    }
-    throw new Error(message);
-  }
-
-  return resp.json() as Promise<T>;
 }
 
 export async function startEmailLogin(email: string) {

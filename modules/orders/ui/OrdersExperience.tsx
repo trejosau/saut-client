@@ -4,7 +4,9 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import * as React from "react";
 
+import { Button, EmptyState, LoadingState, TextField } from "@/core/design-system";
 import { useToast } from "@/core/design-system/feedback/ToastHost";
+import { requestJson } from "@/core/lib/api/fetcher";
 import { getSession } from "@/modules/auth/client/session";
 import {
   getOrder,
@@ -150,9 +152,8 @@ function OrdersExperienceContent() {
 
   React.useEffect(() => {
     if (linkEmail.trim().length > 0) return;
-    void fetch("/api/auth/me", { cache: "no-store" })
-      .then((response) => (response.ok ? response.json() : null))
-      .then((payload: { primary_email?: string } | null) => {
+    void requestJson<{ primary_email?: string }>("/api/auth/me", { cache: "no-store" })
+      .then((payload) => {
         const nextEmail = payload?.primary_email?.trim();
         if (nextEmail) {
           setLinkEmail(nextEmail);
@@ -166,12 +167,15 @@ function OrdersExperienceContent() {
   React.useEffect(() => {
     let cancelled = false;
     if (records.length === 0) {
-      setOrdersById({});
-      return;
+      queueMicrotask(() => { if (!cancelled) setOrdersById({}); });
+      return () => { cancelled = true; };
     }
 
-    setLoadingOrders(true);
-    setError(null);
+    queueMicrotask(() => {
+      if (cancelled) return;
+      setLoadingOrders(true);
+      setError(null);
+    });
     void Promise.all(
       records.map(async (record) => {
         try {
@@ -326,37 +330,27 @@ function OrdersExperienceContent() {
   return (
     <main className="w-full px-4 py-8 sm:px-8 lg:px-14">
       <section className="mx-auto max-w-6xl space-y-5">
-        <article className="rounded-[22px] border border-(--border) bg-[rgba(255,255,255,.45)] p-5 sm:p-6">
-          <h1 className="text-[24px] font-black uppercase tracking-[0.06em] text-(--text)">
+        <article className="rounded-[22px] border border-hairline bg-[rgba(255,255,255,.45)] p-5 sm:p-6">
+          <h1 className="text-[24px] font-black uppercase tracking-[0.06em] text-ink">
             Mis pedidos
           </h1>
-          <p className="mt-1 text-[12px] text-(--muted)">
+          <p className="mt-1 text-[12px] text-mute">
             Rastrea estados, tracking y liga pedidos de invitado con codigo.
           </p>
 
           <form onSubmit={handleLinkOrder} className="mt-4 grid gap-2 sm:grid-cols-4">
-            <input
-              value={linkEmail}
-              onChange={(event) => setLinkEmail(event.target.value)}
-              placeholder="Correo"
-              className="h-10 rounded-[12px] border border-(--border) bg-white/85 px-3 text-[12px] sm:col-span-2"
-            />
-            <input
-              value={linkCode}
-              onChange={(event) => setLinkCode(normalizeOrderCode(event.target.value))}
-              placeholder="Codigo pedido (8 chars)"
-              className="h-10 rounded-[12px] border border-(--border) bg-white/85 px-3 text-[12px] font-mono"
-            />
-            <button
+            <TextField label="Correo" labelClassName="sr-only" value={linkEmail} onChange={(event) => setLinkEmail(event.target.value)} placeholder="Correo" size="sm" wrapperClassName="sm:col-span-2" inputClassName="text-[12px]" />
+            <TextField label="Código de pedido" labelClassName="sr-only" value={linkCode} onChange={(event) => setLinkCode(normalizeOrderCode(event.target.value))} placeholder="Codigo pedido (8 chars)" size="sm" inputClassName="font-mono text-[12px]" />
+            <Button
               type="submit"
               disabled={linking}
-              className="h-10 rounded-[12px] border border-(--border) bg-(--saut-yellow) px-3 text-[10px] font-black uppercase tracking-[0.12em] text-(--saut-black) disabled:cursor-not-allowed disabled:opacity-60"
+              size="sm" variant="primary" shadow="none" isLoading={linking} className="text-[10px]"
             >
               {linking ? "Ligando..." : "Ligar pedido"}
-            </button>
+            </Button>
           </form>
 
-          <div className="mt-2 text-[11px] text-(--muted)">
+          <div className="mt-2 text-[11px] text-mute">
             Si compraste como invitado: usa correo + los primeros 8 caracteres del UUID.
           </div>
         </article>
@@ -368,26 +362,14 @@ function OrdersExperienceContent() {
         ) : null}
 
         {message ? (
-          <div className="rounded-[12px] border border-[rgba(12,128,175,.3)] bg-[rgba(12,128,175,.12)] px-3 py-2 text-[12px] text-(--saut-navy)">
+          <div className="rounded-[12px] border border-[rgba(12,128,175,.3)] bg-[rgba(12,128,175,.12)] px-3 py-2 text-[12px] text-charcoal">
             {message}
           </div>
         ) : null}
 
-        {loadingOrders ? (
-          <article className="rounded-[20px] border border-(--border) bg-[rgba(255,255,255,.45)] p-4 text-[12px] text-(--muted)">
-            Cargando pedidos...
-          </article>
-        ) : null}
+        {loadingOrders ? <LoadingState title="Cargando pedidos..." className="rounded-[20px] border border-hairline bg-[rgba(255,255,255,.45)] p-4 text-[12px] text-mute" /> : null}
 
-        {!loadingOrders && sortedOrders.length === 0 ? (
-          <article className="rounded-[20px] border border-(--border) bg-[rgba(255,255,255,.45)] p-5 text-[12px] text-(--muted)">
-            No hay pedidos ligados todavia. Puedes ligar uno con correo + codigo o comprar desde{" "}
-            <Link href="/catalogo" className="font-black text-(--saut-navy)">
-              catalogo
-            </Link>
-            .
-          </article>
-        ) : null}
+        {!loadingOrders && sortedOrders.length === 0 ? <EmptyState title="No hay pedidos ligados todavía" description={<>Puedes ligar uno con correo + código o comprar desde <Link href="/catalogo" className="font-black text-charcoal">catálogo</Link>.</>} className="rounded-[20px] border border-hairline bg-[rgba(255,255,255,.45)] p-5 text-[12px] text-mute" /> : null}
 
         <div className="space-y-4">
           {sortedOrders.map((order) => {
@@ -402,12 +384,12 @@ function OrdersExperienceContent() {
                   "rounded-[20px] border bg-[rgba(255,255,255,.45)] p-4",
                   isFocused
                     ? "border-[rgba(12,128,175,.42)] shadow-[0_0_0_2px_rgba(12,128,175,.14)]"
-                    : "border-(--border)",
+                    : "border-hairline",
                 ].join(" ")}
               >
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div>
-                    <p className="text-[10px] font-black uppercase tracking-[0.16em] text-(--muted)">
+                    <p className="text-[10px] font-black uppercase tracking-[0.16em] text-mute">
                       Pedido
                     </p>
                     <p className="mt-1 font-mono text-[12px]">{order.id}</p>
@@ -425,7 +407,7 @@ function OrdersExperienceContent() {
                 </div>
 
                 <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-[12px] border border-(--border) bg-white/80 p-3 text-[11px]">
+                  <div className="rounded-[12px] border border-hairline bg-white/80 p-3 text-[11px]">
                     <p className="font-black uppercase tracking-[0.12em]">Tracking</p>
                     <p className="mt-1 font-mono">{order.tracking_number ?? "Pendiente"}</p>
                     {order.tracking_url ? (
@@ -433,14 +415,14 @@ function OrdersExperienceContent() {
                         href={order.tracking_url}
                         target="_blank"
                         rel="noreferrer"
-                        className="mt-2 inline-flex text-(--saut-navy) underline"
+                        className="mt-2 inline-flex text-charcoal underline"
                       >
                         Ver tracking
                       </a>
                     ) : null}
                   </div>
 
-                  <div className="rounded-[12px] border border-(--border) bg-white/80 p-3 text-[11px]">
+                  <div className="rounded-[12px] border border-hairline bg-white/80 p-3 text-[11px]">
                     <p className="font-black uppercase tracking-[0.12em]">Direccion</p>
                     <p className="mt-1">{safeText((order.address as Record<string, unknown>).line1)}</p>
                     <p>
@@ -454,124 +436,124 @@ function OrdersExperienceContent() {
                 {localEditable ? (
                   <div className="mt-3">
                     {!isEditing ? (
-                      <button
+                      <Button
                         type="button"
                         onClick={() => handleStartEditAddress(order)}
-                        className="h-9 rounded-[999px] border border-(--border) bg-[rgba(12,128,175,.16)] px-3 text-[10px] font-black uppercase tracking-[0.12em] text-(--saut-navy)"
+                        size="sm" variant="blue" shadow="none" className="rounded-[999px] text-[10px]"
                       >
                         Cambiar direccion local
-                      </button>
+                      </Button>
                     ) : (
-                      <div className="space-y-2 rounded-[14px] border border-(--border) bg-white/85 p-3 text-[11px]">
+                      <div className="space-y-2 rounded-[14px] border border-hairline bg-white/85 p-3 text-[11px]">
                         <div className="grid gap-2 sm:grid-cols-2">
-                          <input
+                          <TextField
+                            label="Línea 1" labelClassName="sr-only" size="sm"
                             value={addressDraft?.line1 ?? ""}
                             onChange={(event) =>
                               setAddressDraft((prev) =>
                                 prev ? { ...prev, line1: event.target.value } : prev
                               )
                             }
-                            placeholder="Linea 1"
-                            className="h-9 rounded-[10px] border border-(--border) bg-white px-2"
+                            placeholder="Linea 1" inputClassName="text-[12px]"
                           />
-                          <input
+                          <TextField
+                            label="Línea 2" labelClassName="sr-only" size="sm"
                             value={addressDraft?.line2 ?? ""}
                             onChange={(event) =>
                               setAddressDraft((prev) =>
                                 prev ? { ...prev, line2: event.target.value } : prev
                               )
                             }
-                            placeholder="Linea 2"
-                            className="h-9 rounded-[10px] border border-(--border) bg-white px-2"
+                            placeholder="Linea 2" inputClassName="text-[12px]"
                           />
-                          <input
+                          <TextField
+                            label="Ciudad" labelClassName="sr-only" size="sm"
                             value={addressDraft?.city ?? ""}
                             onChange={(event) =>
                               setAddressDraft((prev) =>
                                 prev ? { ...prev, city: event.target.value } : prev
                               )
                             }
-                            placeholder="Ciudad"
-                            className="h-9 rounded-[10px] border border-(--border) bg-white px-2"
+                            placeholder="Ciudad" inputClassName="text-[12px]"
                           />
-                          <input
+                          <TextField
+                            label="Estado" labelClassName="sr-only" size="sm"
                             value={addressDraft?.state ?? ""}
                             onChange={(event) =>
                               setAddressDraft((prev) =>
                                 prev ? { ...prev, state: event.target.value } : prev
                               )
                             }
-                            placeholder="Estado"
-                            className="h-9 rounded-[10px] border border-(--border) bg-white px-2"
+                            placeholder="Estado" inputClassName="text-[12px]"
                           />
-                          <input
+                          <TextField
+                            label="Código postal" labelClassName="sr-only" size="sm"
                             value={addressDraft?.postal_code ?? ""}
                             onChange={(event) =>
                               setAddressDraft((prev) =>
                                 prev ? { ...prev, postal_code: event.target.value } : prev
                               )
                             }
-                            placeholder="Codigo postal"
-                            className="h-9 rounded-[10px] border border-(--border) bg-white px-2"
+                            placeholder="Codigo postal" inputClassName="text-[12px]"
                           />
-                          <input
+                          <TextField
+                            label="Referencia" labelClassName="sr-only" size="sm"
                             value={addressDraft?.reference ?? ""}
                             onChange={(event) =>
                               setAddressDraft((prev) =>
                                 prev ? { ...prev, reference: event.target.value } : prev
                               )
                             }
-                            placeholder="Referencia"
-                            className="h-9 rounded-[10px] border border-(--border) bg-white px-2"
+                            placeholder="Referencia" inputClassName="text-[12px]"
                           />
-                          <input
+                          <TextField
+                            label="País" labelClassName="sr-only" size="sm"
                             value={addressDraft?.country ?? "MX"}
                             onChange={(event) =>
                               setAddressDraft((prev) =>
                                 prev ? { ...prev, country: event.target.value } : prev
                               )
                             }
-                            placeholder="Pais"
-                            className="h-9 rounded-[10px] border border-(--border) bg-white px-2"
+                            placeholder="Pais" inputClassName="text-[12px]"
                           />
-                          <input
+                          <TextField
+                            label="Motivo" labelClassName="sr-only" size="sm"
                             value={addressDraft?.reason ?? ""}
                             onChange={(event) =>
                               setAddressDraft((prev) =>
                                 prev ? { ...prev, reason: event.target.value } : prev
                               )
                             }
-                            placeholder="Motivo (opcional)"
-                            className="h-9 rounded-[10px] border border-(--border) bg-white px-2"
+                            placeholder="Motivo (opcional)" inputClassName="text-[12px]"
                           />
                         </div>
 
                         <div className="flex flex-wrap gap-2">
-                          <button
+                          <Button
                             type="button"
                             onClick={() => void handleSaveAddress()}
                             disabled={savingAddress}
-                            className="h-9 rounded-[999px] border border-(--border) bg-(--saut-yellow) px-3 text-[10px] font-black uppercase tracking-[0.12em] text-(--saut-black) disabled:cursor-not-allowed disabled:opacity-60"
+                            size="sm" variant="primary" shadow="none" isLoading={savingAddress} className="rounded-[999px] text-[10px]"
                           >
                             {savingAddress ? "Guardando..." : "Guardar direccion"}
-                          </button>
-                          <button
+                          </Button>
+                          <Button
                             type="button"
                             onClick={() => {
                               setEditingOrderId(null);
                               setAddressDraft(null);
                             }}
-                            className="h-9 rounded-[999px] border border-(--border) bg-white px-3 text-[10px] font-black uppercase tracking-[0.12em]"
+                            size="sm" variant="outline" shadow="none" className="rounded-[999px] text-[10px]"
                           >
                             Cancelar
-                          </button>
+                          </Button>
                         </div>
                       </div>
                     )}
                   </div>
                 ) : null}
 
-                <div className="mt-3 rounded-[12px] border border-(--border) bg-white/80 p-3 text-[11px]">
+                <div className="mt-3 rounded-[12px] border border-hairline bg-white/80 p-3 text-[11px]">
                   <p className="font-black uppercase tracking-[0.12em]">Items</p>
                   <ul className="mt-2 space-y-1">
                     {order.items.map((item) => (

@@ -4,7 +4,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  type ChangeEvent,
+  type ComponentProps,
   type FormEvent,
   type PointerEvent as ReactPointerEvent,
   useEffect,
@@ -13,10 +13,13 @@ import {
   useState,
 } from "react";
 
-import { Checkbox, SelectField } from "@/core/design-system";
+import { Checkbox, CheckboxControl, DashboardModal, FileUpload, RadioControl, SelectField, TextField } from "@/core/design-system";
+import { TextAreaField } from "@/core/design-system";
+import type { FileUploadValue } from "@/core/design-system/primitives/upload/FileUpload";
 import { FormErrorBag } from "@/core/design-system/feedback/FormErrorBag";
 import { toFormErrorBag, type FormErrorBag as FormErrorBagState } from "@/core/design-system/feedback/form-errors";
 import { useToast } from "@/core/design-system/feedback/ToastHost";
+import { cn } from "@/core/lib/utils/cn";
 import type {
   AdminCollection,
   AdminDesign,
@@ -262,36 +265,40 @@ type ModalShellProps = {
 };
 
 function ModalShell({ title, subtitle, open, onClose, wide, children }: ModalShellProps) {
-  if (!open) return null;
+  return <DashboardModal open={open} title={title} subtitle={subtitle} onClose={onClose} wide={wide}>{children}</DashboardModal>;
+}
+
+/** Compact dashboard form controls. The page configures semantics; geometry
+ * and focus behavior stay in the shared design-system primitives. */
+function CatalogTextField({ wrapperClassName, shellClassName, inputClassName, ...props }: ComponentProps<typeof TextField>) {
   return (
-    <div className="dashboard-modal-layer" role="dialog" aria-modal="true" aria-label={title}>
-      <button
-        type="button"
-        className="dashboard-modal-backdrop"
-        onClick={onClose}
-        aria-label="Cerrar modal"
-      />
-      <article className={`dashboard-modal-panel ${wide ? "dashboard-modal-panel--wide" : ""}`}>
-        <header className="dashboard-modal-header">
-          <div>
-            {subtitle ? <p className="dashboard-modal-subtitle">{subtitle}</p> : null}
-            <h3 className="dashboard-modal-title">{title}</h3>
-          </div>
-          <button type="button" className="dashboard-modal-close" onClick={onClose}>
-            Cerrar
-          </button>
-        </header>
-        <div className="dashboard-modal-content">{children}</div>
-      </article>
-    </div>
+    <TextField
+      size="sm"
+      {...props}
+      wrapperClassName={cn("space-y-1.5", wrapperClassName)}
+      shellClassName={cn("", shellClassName)}
+      inputClassName={cn("text-[11px]", inputClassName)}
+    />
+  );
+}
+
+function CatalogTextArea({ wrapperClassName, shellClassName, textareaClassName, ...props }: ComponentProps<typeof TextAreaField>) {
+  return (
+    <TextAreaField
+      size="sm"
+      {...props}
+      wrapperClassName={cn("space-y-1.5", wrapperClassName)}
+      shellClassName={cn(" ", shellClassName)}
+      textareaClassName={cn("text-[11px]", textareaClassName)}
+    />
   );
 }
 
 function StatCard({ label, value }: { label: string; value: string | number }) {
   return (
-    <article className="dashboard-stat-card">
-      <p className="dashboard-stat-card__label">{label}</p>
-      <p className="dashboard-stat-card__value">{value}</p>
+    <article className="rounded-md border border-hairline bg-soft-cloud/80 p-4">
+      <p className="text-xs font-black uppercase text-mute">{label}</p>
+      <p className="mt-1 text-2xl font-black text-ink">{value}</p>
     </article>
   );
 }
@@ -309,7 +316,7 @@ function ActionButton({
     <button
       type="button"
       onClick={onClick}
-      className={`dashboard-cta-tile ${primary ? "dashboard-cta-tile--primary" : ""}`}
+      className={`rounded-md border border-hairline bg-soft-cloud p-4 transition hover:border-info ${primary ? "border-primary bg-primary/10" : ""}`}
     >
       {label}
     </button>
@@ -517,121 +524,48 @@ function ImageUploadField({
   invalid,
   optimizationMode = "informative",
 }: ImageUploadFieldProps) {
-  const [previewSrc, setPreviewSrc] = useState<string | null>(asImageUrl(initialPreviewSrc));
   const [optimizing, setOptimizing] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
-  const objectUrlRef = useRef<string | null>(null);
+  const initialValue = asImageUrl(initialPreviewSrc)
+    ? ([{ name: `${label} actual`, type: "image/*", url: asImageUrl(initialPreviewSrc) ?? undefined }] satisfies FileUploadValue[])
+    : undefined;
 
-  useEffect(() => {
-    setPreviewSrc(asImageUrl(initialPreviewSrc));
-  }, [initialPreviewSrc]);
-
-  useEffect(
-    () => () => {
-      if (objectUrlRef.current) {
-        URL.revokeObjectURL(objectUrlRef.current);
-      }
-    },
-    []
-  );
-
-  const onChange = async (event: ChangeEvent<HTMLInputElement>) => {
-    const input = event.currentTarget;
-    const file = input.files?.[0];
-    if (objectUrlRef.current) {
-      URL.revokeObjectURL(objectUrlRef.current);
-      objectUrlRef.current = null;
-    }
-
-    if (!file) {
-      setPreviewSrc(asImageUrl(initialPreviewSrc));
-      setNotice(null);
-      onFileChange?.(null);
-      return;
-    }
-
-    setOptimizing(true);
-    let fileForPreview = file;
-    let nextNotice: string | null = null;
-
-    try {
-      const optimized = await optimizeImageFileForCatalog(file, optimizationMode);
-      fileForPreview = optimized.file;
-      nextNotice = optimized.notice;
-
-      if (optimized.file !== file) {
-        if (typeof DataTransfer !== "undefined") {
-          const transfer = new DataTransfer();
-          transfer.items.add(optimized.file);
-          input.files = transfer.files;
-        } else {
-          fileForPreview = file;
-          nextNotice =
-            "La imagen es muy grande. El navegador no permite adjuntar la version comprimida, se subira original.";
-        }
-      }
-
-      logCatalogUploadClient("file-processed", {
-        input_name: name,
-        original_name: file.name,
-        original_size_bytes: file.size,
-        original_size_mb: bytesToMb(file.size),
-        final_name: optimized.file.name,
-        final_size_bytes: optimized.file.size,
-        final_size_mb: bytesToMb(optimized.file.size),
-        compressed: optimized.compressed,
-        optimization_mode: optimizationMode,
-      });
-    } catch (error) {
-      nextNotice =
-        "La imagen es muy grande. No se pudo comprimir por un error del navegador y se subira original.";
-      logCatalogUploadClient("file-process-error", {
-        input_name: name,
-        file_name: file.name,
-        size_bytes: file.size,
-        error: error instanceof Error ? error.message : String(error),
-      });
-    } finally {
-      setOptimizing(false);
-    }
-
-    setNotice(nextNotice);
-
-    const objectUrl = URL.createObjectURL(fileForPreview);
-    objectUrlRef.current = objectUrl;
-    setPreviewSrc(objectUrl);
-    onFileChange?.(fileForPreview);
+  const processFile = async (file: File) => {
+    setNotice(null);
+    const optimized = await optimizeImageFileForCatalog(file, optimizationMode);
+    setNotice(optimized.notice);
+    logCatalogUploadClient("file-processed", {
+      input_name: name,
+      original_name: file.name,
+      original_size_bytes: file.size,
+      original_size_mb: bytesToMb(file.size),
+      final_name: optimized.file.name,
+      final_size_bytes: optimized.file.size,
+      final_size_mb: bytesToMb(optimized.file.size),
+      compressed: optimized.compressed,
+      optimization_mode: optimizationMode,
+    });
+    return optimized.file;
   };
 
-  const fieldClassName = ["dashboard-field", invalid ? "dashboard-field--invalid" : "", className ?? ""]
-    .filter(Boolean)
-    .join(" ");
-
   return (
-    <label className={fieldClassName}>
-      <span className="dashboard-field__label">{label}</span>
-      <input
-        name={name}
-        type="file"
-        required={required}
-        accept="image/*"
-        aria-invalid={invalid || undefined}
-        onChange={onChange}
-        className="dashboard-input file:mr-2 file:rounded-[999px] file:border-0 file:bg-(--saut-yellow) file:px-2 file:py-1 file:text-[10px] file:font-black"
-      />
-      <div className={`dashboard-upload-preview ${invalid ? "dashboard-upload-preview--invalid" : ""}`}>
-        {previewSrc ? (
-          <img src={previewSrc} alt={`${label} preview`} className="dashboard-upload-preview__img" />
-        ) : (
-          <div className="dashboard-upload-preview__empty">Sin imagen</div>
-        )}
-      </div>
-      {optimizing ? (
-        <small className="dashboard-upload-preview__hint">Optimizando imagen grande...</small>
-      ) : null}
-      {notice ? <small className="dashboard-upload-preview__hint">{notice}</small> : null}
-      {hint ? <small className="dashboard-upload-preview__hint">{hint}</small> : null}
-    </label>
+    <FileUpload
+      key={`${name}-${initialPreviewSrc ?? "empty"}`}
+      name={name}
+      label={label}
+      description={notice ?? hint}
+      error={invalid ? "Selecciona una imagen válida." : undefined}
+      required={required}
+      acceptedTypes={["image/*"]}
+      maxSize={MAX_IMAGE_UPLOAD_BYTES}
+      defaultValue={initialValue}
+      processFile={processFile}
+      onProcessingChange={setOptimizing}
+      onChange={(files) => onFileChange?.(files[0] ?? null)}
+      onError={setNotice}
+      className={className}
+      dropLabel={optimizing ? "Optimizando imagen…" : "Arrastra una imagen o selecciona para explorar"}
+    />
   );
 }
 
@@ -650,8 +584,8 @@ function DesignPreviewFlip({
 }) {
   const fallbackText = initials(fallbackLabel);
   const containerClassName = [
-    "dashboard-preview-flip",
-    compact ? "dashboard-preview-flip--compact" : "",
+    "relative overflow-hidden rounded-md border border-hairline bg-white",
+    compact ? "max-w-xs" : "",
     className ?? "",
   ]
     .filter(Boolean)
@@ -659,21 +593,21 @@ function DesignPreviewFlip({
 
   return (
     <div className={containerClassName}>
-      <div className="dashboard-preview-flip__side dashboard-preview-flip__side--front">
+      <div className="relative w-full h-full relative">
         {frontSrc ? (
-          <img src={frontSrc} alt={`${fallbackLabel} frente`} className="dashboard-preview-flip__img" />
+          <img src={frontSrc} alt={`${fallbackLabel} frente`} className="w-full h-full object-contain" />
         ) : (
-          <div className="dashboard-preview-flip__placeholder">
+          <div className="grid h-full place-items-center text-xs text-mute">
             <span>{fallbackText}</span>
             <small>Frente</small>
           </div>
         )}
       </div>
-      <div className="dashboard-preview-flip__side dashboard-preview-flip__side--back">
+      <div className="relative w-full h-full relative">
         {backSrc ? (
-          <img src={backSrc} alt={`${fallbackLabel} espalda`} className="dashboard-preview-flip__img" />
+          <img src={backSrc} alt={`${fallbackLabel} espalda`} className="w-full h-full object-contain" />
         ) : (
-          <div className="dashboard-preview-flip__placeholder">
+          <div className="grid h-full place-items-center text-xs text-mute">
             <span>{fallbackText}</span>
             <small>Espalda</small>
           </div>
@@ -702,38 +636,37 @@ function SelectDesignCards({
   const selectedDesignVariants = selectedDesign ? variantsByDesign.get(selectedDesign.id) ?? [] : [];
 
   return (
-    <fieldset className="dashboard-fieldset md:col-span-2">
-      <legend className="dashboard-fieldset__legend">Seleccion visual de diseno</legend>
-      <div className="dashboard-design-picker-grid">
+    <fieldset className="rounded-md border border-hairline bg-soft-cloud/60 p-4 md:col-span-2">
+      <legend className="text-xs font-black uppercase text-ink px-1">Seleccion visual de diseno</legend>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
         {designs.map((design, index) => {
           const frontSrc = designImageBySide(design, "front");
           const backSrc = designImageBySide(design, "back");
           const variantCount = variantsByDesign.get(design.id)?.length ?? 0;
 
           return (
-            <label key={design.id} className="dashboard-radio-card">
-              <input
-                type="radio"
+            <label key={design.id} className="relative flex cursor-pointer rounded-md border border-hairline bg-soft-cloud p-3 transition hover:border-info">
+              <RadioControl
                 name="design_id"
                 value={design.id}
                 required={index === 0}
                 checked={selectedDesignId === design.id}
                 onChange={() => onSelectDesign(design.id)}
-                className="dashboard-radio-card__input"
+                className="sr-only"
               />
-              <span className="dashboard-radio-card__content">
+              <span className="space-y-1">
                 <DesignPreviewFlip
                   frontSrc={frontSrc}
                   backSrc={backSrc}
                   fallbackLabel={design.name}
                   compact={compact}
-                  className={compact ? "dashboard-preview-flip--selector" : undefined}
+                  className={compact ? "cursor-pointer hover:border-info" : undefined}
                 />
-                <span className="dashboard-radio-card__title">{design.name}</span>
-                <span className="dashboard-radio-card__meta">
+                <span className="text-xs font-black uppercase text-ink">{design.name}</span>
+                <span className="text-xs text-mute">
                   {design.has_variants ? "Diseno con variantes" : "Diseno unico"}
                 </span>
-                <span className="dashboard-radio-card__meta dashboard-radio-card__meta--strong">
+                <span className="text-xs text-mute text-xs font-black text-ink">
                   {variantCount} variante{variantCount === 1 ? "" : "s"} activa{variantCount === 1 ? "" : "s"}
                 </span>
               </span>
@@ -743,26 +676,26 @@ function SelectDesignCards({
       </div>
 
       {selectedDesign && !compact ? (
-        <div className="dashboard-design-variant-panel">
-          <p className="dashboard-design-variant-panel__kicker">Variantes del diseno seleccionado</p>
-          <p className="dashboard-design-variant-panel__title">{selectedDesign.name}</p>
+        <div className="rounded-md border border-hairline bg-soft-cloud p-4">
+          <p className="text-[10px] font-black uppercase tracking-wider text-info">Variantes del diseno seleccionado</p>
+          <p className="text-sm font-black uppercase text-ink">{selectedDesign.name}</p>
           {selectedDesignVariants.length > 0 ? (
-            <div className="dashboard-design-variant-grid">
+            <div className="grid gap-3 sm:grid-cols-2">
               {selectedDesignVariants.map((variant) => (
-                <article key={variant.id} className="dashboard-variant-snapshot">
+                <article key={variant.id} className="flex items-center justify-between rounded-md border border-hairline bg-white p-3">
                   <DesignPreviewFlip
                     frontSrc={variantImageBySide(variant, selectedDesign, "front")}
                     backSrc={variantImageBySide(variant, selectedDesign, "back")}
                     fallbackLabel={`${selectedDesign.name} ${variantDisplayName(variant)}`}
                     compact
                   />
-                  <p className="dashboard-variant-snapshot__title">{variantDisplayName(variant)}</p>
-                  <p className="dashboard-variant-snapshot__meta">{variant.code}</p>
+                  <p className="text-xs font-black text-ink">{variantDisplayName(variant)}</p>
+                  <p className="text-[11px] text-mute">{variant.code}</p>
                 </article>
               ))}
             </div>
           ) : (
-            <p className="dashboard-design-variant-panel__empty">
+            <p className="text-xs text-mute py-4 text-center">
               Este diseno aun no tiene variantes activas. Puedes publicar con diseno base y despues agregar variantes.
             </p>
           )}
@@ -1034,14 +967,14 @@ function PrintAreaPlanner({
   };
 
   return (
-    <div className="dashboard-print-planner md:col-span-2">
-      <div className="dashboard-print-planner__header">
-        <p className="dashboard-print-planner__title">Editor visual de area de impresion</p>
-        <div className="dashboard-print-planner__side">
+    <div className="space-y-4 rounded-md border border-hairline bg-soft-cloud p-4 md:col-span-2">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-black uppercase text-ink">Editor visual de area de impresion</p>
+        <div className="relative h-full w-full">
           {availableSides.includes("front") ? (
             <button
               type="button"
-              className={`dashboard-mini-btn ${effectiveSide === "front" ? "dashboard-mini-btn--active" : ""}`}
+              className={`inline-flex min-h-[28px] items-center justify-center rounded-full border border-hairline bg-soft-cloud px-2.5 text-[9px] font-black uppercase tracking-wider text-ink transition hover:border-info disabled:opacity-50 disabled:cursor-not-allowed ${effectiveSide === "front" ? "border-info/40 bg-info/12 text-charcoal" : ""}`}
               onClick={() => setSide("front")}
             >
               Frontal
@@ -1050,7 +983,7 @@ function PrintAreaPlanner({
           {availableSides.includes("back") ? (
             <button
               type="button"
-              className={`dashboard-mini-btn ${effectiveSide === "back" ? "dashboard-mini-btn--active" : ""}`}
+              className={`inline-flex min-h-[28px] items-center justify-center rounded-full border border-hairline bg-soft-cloud px-2.5 text-[9px] font-black uppercase tracking-wider text-ink transition hover:border-info disabled:opacity-50 disabled:cursor-not-allowed ${effectiveSide === "back" ? "border-info/40 bg-info/12 text-charcoal" : ""}`}
               onClick={() => setSide("back")}
             >
               Trasera
@@ -1068,7 +1001,7 @@ function PrintAreaPlanner({
                 key={variant.id}
                 type="button"
                 onClick={() => setActiveVariantId(variant.id)}
-                className={`dashboard-mini-btn ${selected ? "dashboard-mini-btn--active" : ""}`}
+                className={`inline-flex min-h-[28px] items-center justify-center rounded-full border border-hairline bg-soft-cloud px-2.5 text-[9px] font-black uppercase tracking-wider text-ink transition hover:border-info disabled:opacity-50 disabled:cursor-not-allowed ${selected ? "border-info/40 bg-info/12 text-charcoal" : ""}`}
                 title={variant.label}
               >
                 {variant.code}
@@ -1079,7 +1012,7 @@ function PrintAreaPlanner({
           <button
             type="button"
             onClick={confirmActiveVariant}
-            className={`dashboard-mini-btn ${activeVariantConfirmed ? "dashboard-mini-btn--active" : ""}`}
+            className={`inline-flex min-h-[28px] items-center justify-center rounded-full border border-hairline bg-soft-cloud px-2.5 text-[9px] font-black uppercase tracking-wider text-ink transition hover:border-info disabled:opacity-50 disabled:cursor-not-allowed ${activeVariantConfirmed ? "border-info/40 bg-info/12 text-charcoal" : ""}`}
             disabled={!activeVariant}
           >
             {activeVariantConfirmed ? "Variante confirmada" : "Confirmar variante"}
@@ -1092,15 +1025,15 @@ function PrintAreaPlanner({
           </span>
         </div>
       ) : null}
-      <div ref={stageRef} className="dashboard-print-planner__stage">
+      <div ref={stageRef} className="relative mx-auto aspect-square max-w-sm rounded-md border border-hairline bg-white p-4">
         <img
           src={DEFAULT_PRINT_STAGE_MOCKUP}
           alt="Mockup negro de playera"
-          className="dashboard-print-planner__base"
+          className="h-full w-full object-contain"
         />
         {activeSrc ? (
           <div
-            className="dashboard-print-planner__box"
+            className="absolute border-2 border-dashed border-info"
             style={{
               left: `${activeArea.x}%`,
               top: `${activeArea.y}%`,
@@ -1112,21 +1045,21 @@ function PrintAreaPlanner({
             <img
               src={activeSrc}
               alt={`${fallbackLabel} ${effectiveSide}`}
-              className="dashboard-print-planner__image"
+              className="h-full w-full object-contain"
             />
             <div
-              className="dashboard-print-planner__handle"
+              className="absolute bottom-1 right-1 h-3 w-3 rounded-full bg-info"
               onPointerDown={(event) => startDrag(event, "resize")}
             />
           </div>
         ) : (
-          <div className="dashboard-print-planner__placeholder">
+          <div className="grid h-full place-items-center text-xs font-bold text-info">
             <span>{initials(fallbackLabel)}</span>
             <small>No hay PNG disponible para esta vista</small>
           </div>
         )}
       </div>
-      <div className="dashboard-print-planner__meta">
+      <div className="text-xs text-mute">
         <span>X: {activeArea.x.toFixed(2)}%</span>
         <span>Y: {activeArea.y.toFixed(2)}%</span>
         <span>W: {activeArea.w.toFixed(2)}%</span>
@@ -1597,11 +1530,11 @@ export function CatalogDashboardClient({
   const activeModalErrorBag = modalErrorContext && modalErrorContext === modal ? modalErrorBag : null;
 
   return (
-    <main className="dashboard-modern-shell mx-auto w-full max-w-[1680px] px-3 py-4 sm:px-4 lg:px-5">
-      <section className="dashboard-surface-card p-3 sm:p-4">
+    <main className="rounded-md border border-hairline bg-soft-cloud/90 mx-auto w-full max-w-[1680px] px-3 py-4 sm:px-4 lg:px-5">
+      <section className="rounded-md border border-hairline bg-soft-cloud/80 p-4 p-3 sm:p-4">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="text-[22px] font-black uppercase tracking-[0.03em] text-(--text) sm:text-[26px]">
+            <h1 className="text-[22px] font-black uppercase tracking-[0.03em] text-ink sm:text-[26px]">
               Catalogo interno
             </h1>
             <p className="mt-1 text-[12px] text-[rgba(8,10,13,.68)]">
@@ -1616,22 +1549,22 @@ export function CatalogDashboardClient({
         </div>
       </section>
 
-      <nav className="dashboard-nav-points mt-3" aria-label="Navegacion rapida del catalogo">
-        <a href="#catalogo-disenos" className="dashboard-nav-point">
+      <nav className="flex flex-wrap items-center gap-2 mt-3" aria-label="Navegacion rapida del catalogo">
+        <a href="#catalogo-disenos" className="rounded-full border border-hairline bg-soft-cloud px-3 py-1 text-xs font-black uppercase text-ink">
           Disenos
         </a>
-        <a href="#catalogo-publicaciones" className="dashboard-nav-point">
+        <a href="#catalogo-publicaciones" className="rounded-full border border-hairline bg-soft-cloud px-3 py-1 text-xs font-black uppercase text-ink">
           Publicaciones
         </a>
-        <a href="#catalogo-colecciones" className="dashboard-nav-point">
+        <a href="#catalogo-colecciones" className="rounded-full border border-hairline bg-soft-cloud px-3 py-1 text-xs font-black uppercase text-ink">
           Colecciones
         </a>
-        <a href="#catalogo-drops" className="dashboard-nav-point">
+        <a href="#catalogo-drops" className="rounded-full border border-hairline bg-soft-cloud px-3 py-1 text-xs font-black uppercase text-ink">
           Drops
         </a>
       </nav>
 
-      <section className="mt-2 rounded-[16px] border border-(--border) bg-[rgba(255,255,255,.58)] p-3 sm:p-4">
+      <section className="mt-2 rounded-[16px] border border-hairline bg-[rgba(255,255,255,.58)] p-3 sm:p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <p className="text-[11px] font-black uppercase tracking-[0.14em] text-[rgba(8,10,13,.72)]">
             Acciones rapidas
@@ -1654,13 +1587,13 @@ export function CatalogDashboardClient({
 
       <section id="catalogo-disenos" className="mt-4">
         <header className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-[15px] font-black uppercase tracking-[0.12em] text-(--text)">
+          <h2 className="text-[15px] font-black uppercase tracking-[0.12em] text-ink">
             Disenos ({designs.length})
           </h2>
           <p className="text-[11px] text-[rgba(8,10,13,.58)]">Click en card para editar variantes</p>
         </header>
         <div className="max-h-[42vh] overflow-auto pr-1">
-          <div className="dashboard-grid-fade grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid gap-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {designs.map((design, index) => {
               const activeCount = variantsByDesign.get(design.id)?.length ?? 0;
               const totalCount = allVariantsByDesign.get(design.id)?.length ?? 0;
@@ -1668,7 +1601,7 @@ export function CatalogDashboardClient({
                 <button
                   key={design.id}
                   type="button"
-                  className="dashboard-surface-card p-3 text-left"
+                  className="rounded-md border border-hairline bg-soft-cloud/80 p-4 p-3 text-left"
                   style={{ ["--card-delay" as string]: `${index * 22}ms` }}
                   onClick={() => {
                     setActiveDesign(design);
@@ -1676,10 +1609,10 @@ export function CatalogDashboardClient({
                   }}
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <p className="line-clamp-2 text-[13px] font-black uppercase tracking-[0.08em] text-(--text)">
+                    <p className="line-clamp-2 text-[13px] font-black uppercase tracking-[0.08em] text-ink">
                       {design.name}
                     </p>
-                    <span className={design.has_variants ? "dashboard-chip dashboard-chip--ok" : "dashboard-chip"}>
+                    <span className={design.has_variants ? "inline-flex items-center rounded-full border border-hairline bg-hairline-soft px-2.5 py-0.5 text-[10px] font-black uppercase text-ink border-success/30 bg-success/12 text-success" : "inline-flex items-center rounded-full border border-hairline bg-hairline-soft px-2.5 py-0.5 text-[10px] font-black uppercase text-ink"}>
                       {design.has_variants ? "Multi" : "Unico"}
                     </span>
                   </div>
@@ -1703,13 +1636,13 @@ export function CatalogDashboardClient({
 
       <section id="catalogo-publicaciones" className="mt-4">
         <header className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-[15px] font-black uppercase tracking-[0.12em] text-(--text)">
+          <h2 className="text-[15px] font-black uppercase tracking-[0.12em] text-ink">
             Publicaciones ({publications.length})
           </h2>
           <p className="text-[11px] text-[rgba(8,10,13,.58)]">Click en card para editar</p>
         </header>
         <div className="max-h-[48vh] overflow-auto pr-1">
-          <div className="dashboard-grid-fade grid gap-2 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+          <div className="grid gap-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
             {publications.map((publication, index) => {
               const publicationDesign = designById.get(publication.design_id);
 
@@ -1717,7 +1650,7 @@ export function CatalogDashboardClient({
                 <button
                   key={publication.id}
                   type="button"
-                  className="dashboard-surface-card p-3 text-left"
+                  className="rounded-md border border-hairline bg-soft-cloud/80 p-4 p-3 text-left"
                   style={{ ["--card-delay" as string]: `${index * 22}ms` }}
                   onClick={() => {
                     setActivePublication(publication);
@@ -1726,14 +1659,14 @@ export function CatalogDashboardClient({
                   }}
                 >
                   <div className="flex flex-wrap items-start justify-between gap-2">
-                    <p className="line-clamp-2 text-[13px] font-black uppercase tracking-[0.08em] text-(--text)">
+                    <p className="line-clamp-2 text-[13px] font-black uppercase tracking-[0.08em] text-ink">
                       {publication.title}
                     </p>
                     <span
                       className={
                         publication.is_active
-                          ? "dashboard-chip dashboard-chip--ok"
-                          : "dashboard-chip dashboard-chip--muted"
+                          ? "inline-flex items-center rounded-full border border-hairline bg-hairline-soft px-2.5 py-0.5 text-[10px] font-black uppercase text-ink border-success/30 bg-success/12 text-success"
+                          : "inline-flex items-center rounded-full border border-hairline bg-hairline-soft px-2.5 py-0.5 text-[10px] font-black uppercase text-ink border-hairline bg-soft-cloud text-mute"
                       }
                     >
                       {publication.is_active ? "Activa" : "Inactiva"}
@@ -1746,7 +1679,7 @@ export function CatalogDashboardClient({
                       backSrc={designImageBySide(publicationDesign, "back")}
                       fallbackLabel={publicationDesign?.name ?? publication.title}
                       compact
-                      className="dashboard-preview-flip--tile"
+                      className="aspect-square"
                     />
                     <div className="min-w-0">
                       <p className="text-[11px] text-[rgba(8,10,13,.68)]">
@@ -1758,7 +1691,7 @@ export function CatalogDashboardClient({
                     </div>
                   </div>
                   <div className="mt-2 flex items-center justify-between gap-3">
-                    <p className="text-[11px] font-black text-(--text)">${money(publication.price_mxn)} MXN</p>
+                    <p className="text-[11px] font-black text-ink">${money(publication.price_mxn)} MXN</p>
                     <span className="text-[10px] font-black uppercase tracking-[0.12em] text-[rgba(8,10,13,.54)]">
                       Editar
                     </span>
@@ -1773,18 +1706,18 @@ export function CatalogDashboardClient({
       <section className="mt-4 grid gap-3 xl:grid-cols-2">
         <article id="catalogo-colecciones">
           <header className="mb-3 flex items-center justify-between gap-2">
-            <h2 className="text-[15px] font-black uppercase tracking-[0.12em] text-(--text)">
+            <h2 className="text-[15px] font-black uppercase tracking-[0.12em] text-ink">
               Colecciones ({collections.length})
             </h2>
             <p className="text-[11px] text-[rgba(8,10,13,.58)]">Cards editables</p>
           </header>
           <div className="max-h-[30vh] overflow-auto pr-1">
-            <div className="dashboard-grid-fade grid gap-2">
+            <div className="grid gap-4 grid gap-2">
               {collections.map((collection, index) => (
                 <button
                   key={collection.id}
                   type="button"
-                  className="dashboard-surface-card p-3 text-left"
+                  className="rounded-md border border-hairline bg-soft-cloud/80 p-4 p-3 text-left"
                   style={{ ["--card-delay" as string]: `${index * 22}ms` }}
                   onClick={() => {
                     setActiveCollection(collection);
@@ -1792,10 +1725,10 @@ export function CatalogDashboardClient({
                   }}
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="text-[12px] font-black uppercase tracking-[0.08em] text-(--text)">
+                    <p className="text-[12px] font-black uppercase tracking-[0.08em] text-ink">
                       {collection.title}
                     </p>
-                    <span className="dashboard-chip">{titleCase(collection.visibility)}</span>
+                    <span className="inline-flex items-center rounded-full border border-hairline bg-hairline-soft px-2.5 py-0.5 text-[10px] font-black uppercase text-ink">{titleCase(collection.visibility)}</span>
                   </div>
                   <p className="mt-1 text-[11px] text-[rgba(8,10,13,.68)]">/{collection.slug}</p>
                   <p className="mt-1 line-clamp-2 text-[11px] text-[rgba(8,10,13,.62)]">
@@ -1809,18 +1742,18 @@ export function CatalogDashboardClient({
 
         <article id="catalogo-drops">
           <header className="mb-3 flex items-center justify-between gap-2">
-            <h2 className="text-[15px] font-black uppercase tracking-[0.12em] text-(--text)">
+            <h2 className="text-[15px] font-black uppercase tracking-[0.12em] text-ink">
               Drops ({drops.length})
             </h2>
             <p className="text-[11px] text-[rgba(8,10,13,.58)]">Cards editables</p>
           </header>
           <div className="max-h-[30vh] overflow-auto pr-1">
-            <div className="dashboard-grid-fade grid gap-2">
+            <div className="grid gap-4 grid gap-2">
               {drops.map((drop, index) => (
                 <button
                   key={drop.id}
                   type="button"
-                  className="dashboard-surface-card p-3 text-left"
+                  className="rounded-md border border-hairline bg-soft-cloud/80 p-4 p-3 text-left"
                   style={{ ["--card-delay" as string]: `${index * 22}ms` }}
                   onClick={() => {
                     setActiveDrop(drop);
@@ -1828,8 +1761,8 @@ export function CatalogDashboardClient({
                   }}
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="text-[12px] font-black uppercase tracking-[0.08em] text-(--text)">{drop.title}</p>
-                    <span className="dashboard-chip">{titleCase(drop.status)}</span>
+                    <p className="text-[12px] font-black uppercase tracking-[0.08em] text-ink">{drop.title}</p>
+                    <span className="inline-flex items-center rounded-full border border-hairline bg-hairline-soft px-2.5 py-0.5 text-[10px] font-black uppercase text-ink">{titleCase(drop.status)}</span>
                   </div>
                   <p className="mt-1 text-[11px] text-[rgba(8,10,13,.68)]">/{drop.slug}</p>
                   <p className="mt-1 line-clamp-2 text-[11px] text-[rgba(8,10,13,.62)]">
@@ -1849,12 +1782,15 @@ export function CatalogDashboardClient({
         open={modal === "create-design"}
         onClose={closeModal}
       >
-        <form onSubmit={submitCatalogForm(handleCreateDesignAction)} className="dashboard-form-grid">
+        <form onSubmit={submitCatalogForm(handleCreateDesignAction)} className="grid gap-4 sm:grid-cols-2">
           <FormErrorBag bag={activeModalErrorBag} className="md:col-span-2" />
-          <label className="dashboard-field md:col-span-2">
-            <span className="dashboard-field__label">Nombre del diseno</span>
-            <input name="name" required placeholder="Ej. Ronaldo Legacy" className="dashboard-input" />
-          </label>
+          <CatalogTextField
+            name="name"
+            label="Nombre del diseno"
+            required
+            placeholder="Ej. Ronaldo Legacy"
+            wrapperClassName="md:col-span-2"
+          />
           <input type="hidden" name="has_variants" value="true" />
           <input type="hidden" name="variant_count" value={String(createDesignVariants.length)} />
           <ImageUploadField
@@ -1892,7 +1828,7 @@ export function CatalogDashboardClient({
               <button
                 type="button"
                 onClick={addCreateDesignVariant}
-                className="dashboard-mini-btn dashboard-mini-btn--active"
+                className="inline-flex min-h-[28px] items-center justify-center rounded-full border border-hairline bg-soft-cloud px-2.5 text-[9px] font-black uppercase tracking-wider text-ink transition hover:border-info disabled:opacity-50 disabled:cursor-not-allowed border-info/40 bg-info/12 text-charcoal"
               >
                 Agregar variante
               </button>
@@ -1905,7 +1841,7 @@ export function CatalogDashboardClient({
             ) : (
               <div
                 className={`mt-3 grid gap-3 ${
-                  createDesignVariants.length >= 4 ? "dashboard-variant-draft-list" : ""
+                  createDesignVariants.length >= 4 ? "space-y-2" : ""
                 }`}
               >
                 {createDesignVariants.map((variant, index) => (
@@ -1920,22 +1856,20 @@ export function CatalogDashboardClient({
                       <button
                         type="button"
                         onClick={() => removeCreateDesignVariant(variant.id)}
-                        className="dashboard-mini-btn dashboard-mini-btn--danger"
+                        className="inline-flex min-h-[28px] items-center justify-center rounded-full border border-hairline bg-soft-cloud px-2.5 text-[9px] font-black uppercase tracking-wider text-ink transition hover:border-info disabled:opacity-50 disabled:cursor-not-allowed border-sale/40 bg-sale/12 text-sale-deep"
                       >
                         Quitar
                       </button>
                     </div>
-                    <label className="dashboard-field mt-2">
-                      <span className="dashboard-field__label">Nombre de la variante</span>
-                      <input
-                        name={`variant_name_${index}`}
-                        required
-                        value={variant.name}
-                        onChange={(event) => updateCreateDesignVariantName(variant.id, event.target.value)}
-                        placeholder="Ej. Roja 200g"
-                        className="dashboard-input"
-                      />
-                    </label>
+                    <CatalogTextField
+                      name={`variant_name_${index}`}
+                      label="Nombre de la variante"
+                      required
+                      value={variant.name}
+                      onChange={(event) => updateCreateDesignVariantName(variant.id, event.target.value)}
+                      placeholder="Ej. Roja 200g"
+                      wrapperClassName="mt-2"
+                    />
                     <div className="mt-2 grid gap-2 md:grid-cols-2">
                       <ImageUploadField
                         name={`variant_front_file_${index}`}
@@ -1955,7 +1889,7 @@ export function CatalogDashboardClient({
               </div>
             )}
           </section>
-          <button type="submit" className="dashboard-submit md:col-span-2">
+          <button type="submit" className="inline-flex min-h-11 items-center justify-center rounded-full border border-primary bg-primary px-6 text-xs font-black uppercase text-ink shadow-sm transition hover:bg-primary/90 md:col-span-2">
             Guardar diseno
           </button>
         </form>
@@ -1970,24 +1904,13 @@ export function CatalogDashboardClient({
       >
         <form
           onSubmit={submitCatalogForm(handleCreatePublicationAction)}
-          className="dashboard-publication-layout"
+          className="grid gap-6 lg:grid-cols-12"
         >
-          <div className="dashboard-publication-layout__left">
-            <div className="dashboard-form-grid dashboard-form-grid--tight">
+          <div className="lg:col-span-8 space-y-6">
+            <div className="grid gap-4 sm:grid-cols-2 grid gap-2 sm:grid-cols-2">
               <FormErrorBag bag={activeModalErrorBag} className="md:col-span-2" />
-              <label className="dashboard-field md:col-span-2">
-                <span className="dashboard-field__label">Titulo</span>
-                <input name="title" required className="dashboard-input dashboard-input--small" />
-              </label>
-              <label className="dashboard-field md:col-span-2">
-                <span className="dashboard-field__label">Descripcion</span>
-                <textarea
-                  name="description"
-                  rows={2}
-                  required
-                  className="dashboard-input dashboard-input--area dashboard-input--small"
-                />
-              </label>
+              <CatalogTextField name="title" label="Titulo" required wrapperClassName="md:col-span-2" />
+              <CatalogTextArea name="description" label="Descripcion" rows={2} required wrapperClassName="md:col-span-2" />
               {designs.length > 0 ? (
                 <SelectDesignCards
                   designs={designs}
@@ -1997,20 +1920,11 @@ export function CatalogDashboardClient({
                   compact
                 />
               ) : (
-                <p className="dashboard-empty-note md:col-span-2">
+                <p className="text-xs font-bold text-mute md:col-span-2">
                   No hay disenos creados aun. Crea al menos un diseno para publicar.
                 </p>
               )}
-              <label className="dashboard-field md:col-span-2">
-                <span className="dashboard-field__label">Precio MXN</span>
-                <input
-                  name="price_mxn"
-                  type="number"
-                  min={1}
-                  required
-                  className="dashboard-input dashboard-input--small"
-                />
-              </label>
+              <CatalogTextField name="price_mxn" label="Precio MXN" type="number" min={1} required wrapperClassName="md:col-span-2" />
               <SelectField
                 name="garment_type"
                 label="Tipo"
@@ -2025,7 +1939,7 @@ export function CatalogDashboardClient({
                 }
                 shellClassName="h-[32px] rounded-[9px] px-[9px]"
                 selectClassName="text-[11px]"
-                wrapperClassName="dashboard-field"
+                wrapperClassName="space-y-1.5"
               />
               <SelectField
                 name="garment_model"
@@ -2037,7 +1951,7 @@ export function CatalogDashboardClient({
                 onChange={(event) => setCreatePublicationGarmentModel(event.target.value)}
                 shellClassName="h-[32px] rounded-[9px] px-[9px]"
                 selectClassName="text-[11px]"
-                wrapperClassName="dashboard-field"
+                wrapperClassName="space-y-1.5"
               />
               <SelectField
                 name="category"
@@ -2048,7 +1962,7 @@ export function CatalogDashboardClient({
                 options={PUBLICATION_CATEGORY_OPTIONS}
                 shellClassName="h-[32px] rounded-[9px] px-[9px]"
                 selectClassName="text-[11px]"
-                wrapperClassName="dashboard-field"
+                wrapperClassName="space-y-1.5"
               />
               <Checkbox
                 name="is_active"
@@ -2067,13 +1981,13 @@ export function CatalogDashboardClient({
               <button
                 type="submit"
                 disabled={designs.length === 0 || !createPrintPlannerReady}
-                className="dashboard-submit dashboard-submit--blue md:col-span-2"
+                className="inline-flex min-h-11 items-center justify-center rounded-full border border-primary bg-primary px-6 text-xs font-black uppercase text-ink shadow-sm transition hover:bg-primary/90 inline-flex min-h-11 items-center justify-center rounded-full border border-info bg-info px-6 text-xs font-black uppercase text-white shadow-sm transition hover:bg-info/90 md:col-span-2"
               >
                 Crear publicacion
               </button>
             </div>
           </div>
-          <div className="dashboard-publication-layout__right">
+          <div className="lg:col-span-4 space-y-6">
             <PrintAreaPlanner
               key={`create-publication-${selectedCreateDesignId}`}
               frontSrc={designImageBySide(selectedCreateDesign ?? undefined, "front")}
@@ -2092,23 +2006,20 @@ export function CatalogDashboardClient({
         open={modal === "create-collection"}
         onClose={closeModal}
       >
-        <form onSubmit={submitCatalogForm(handleCreateCollectionAction)} className="dashboard-form-grid">
+        <form onSubmit={submitCatalogForm(handleCreateCollectionAction)} className="grid gap-4 sm:grid-cols-2">
           <FormErrorBag bag={activeModalErrorBag} className="md:col-span-2" />
-          <label className="dashboard-field">
-            <span className="dashboard-field__label">Titulo</span>
-            <input name="title" required className="dashboard-input" />
-          </label>
-          <label className="dashboard-field md:col-span-2">
-            <span className="dashboard-field__label">Descripcion</span>
-            <textarea name="description" rows={2} className="dashboard-input dashboard-input--area" />
-          </label>
-          <label className="dashboard-field md:col-span-2">
-            <span className="dashboard-field__label">Visibilidad</span>
-            <select name="visibility" defaultValue="visible" className="dashboard-input">
-              <option value="visible">Visible</option>
-              <option value="hidden">Hidden</option>
-            </select>
-          </label>
+          <CatalogTextField name="title" label="Titulo" required />
+          <CatalogTextArea name="description" label="Descripcion" rows={2} wrapperClassName="md:col-span-2" />
+          <SelectField
+            name="visibility"
+            label="Visibilidad"
+            size="sm"
+            defaultValue="visible"
+            options={[{ value: "visible", label: "Visible" }, { value: "hidden", label: "Hidden" }]}
+            wrapperClassName="md:col-span-2"
+
+            selectClassName="text-[11px]"
+          />
           <section className="md:col-span-2 rounded-[12px] border border-[rgba(8,10,13,.14)] bg-white/78 p-3">
             <p className="text-[12px] font-black uppercase tracking-[0.1em] text-[rgba(8,10,13,.72)]">
               Items de la coleccion
@@ -2116,26 +2027,26 @@ export function CatalogDashboardClient({
             <p className="mt-1 text-[11px] text-[rgba(8,10,13,.6)]">
               Selecciona aqui las publicaciones que van a pertenecer a la coleccion.
             </p>
-            <div className="mt-3 max-h-60 space-y-2 overflow-auto rounded-[12px] border border-(--border) bg-white/70 p-3">
+            <div className="mt-3 max-h-60 space-y-2 overflow-auto rounded-[12px] border border-hairline bg-white/70 p-3">
               {publications.map((publication) => {
                 const publicationDesign = designById.get(publication.design_id);
                 return (
                   <label
                     key={`create-collection-${publication.id}`}
-                    className="dashboard-check dashboard-check--tile dashboard-check--preview"
+                    className="flex items-start gap-3 rounded-md border border-hairline bg-soft-cloud p-3 cursor-pointer hover:border-info border-info/40 bg-info/5"
                   >
-                    <input type="checkbox" name="publication_ids" value={publication.id} />
-                    <span className="dashboard-check__body">
+                    <CheckboxControl name="publication_ids" value={publication.id} size="sm" />
+                    <span className="min-w-0 flex-1">
                       <DesignPreviewFlip
                         frontSrc={designImageBySide(publicationDesign, "front")}
                         backSrc={designImageBySide(publicationDesign, "back")}
                         fallbackLabel={publicationDesign?.name ?? publication.title}
                         compact
-                        className="dashboard-preview-flip--selector"
+                        className="cursor-pointer hover:border-info"
                       />
-                      <span className="dashboard-check__text">
-                        <span className="dashboard-check__title">{publication.title}</span>
-                        <small className="dashboard-check__meta">/{publication.slug}</small>
+                      <span className="text-xs text-ink">
+                        <span className="text-xs font-black text-ink">{publication.title}</span>
+                        <small className="text-[11px] text-mute">/{publication.slug}</small>
                       </span>
                     </span>
                   </label>
@@ -2143,7 +2054,7 @@ export function CatalogDashboardClient({
               })}
             </div>
           </section>
-          <button type="submit" className="dashboard-submit md:col-span-2">
+          <button type="submit" className="inline-flex min-h-11 items-center justify-center rounded-full border border-primary bg-primary px-6 text-xs font-black uppercase text-ink shadow-sm transition hover:bg-primary/90 md:col-span-2">
             Guardar coleccion
           </button>
         </form>
@@ -2155,43 +2066,15 @@ export function CatalogDashboardClient({
         open={modal === "create-drop"}
         onClose={closeModal}
       >
-        <form onSubmit={submitCatalogForm(handleCreateDropAction)} className="dashboard-form-grid">
+        <form onSubmit={submitCatalogForm(handleCreateDropAction)} className="grid gap-4 sm:grid-cols-2">
           <FormErrorBag bag={activeModalErrorBag} className="md:col-span-2" />
-          <label className="dashboard-field">
-            <span className="dashboard-field__label">Titulo</span>
-            <input name="title" required className="dashboard-input" />
-          </label>
-          <label className="dashboard-field md:col-span-2">
-            <span className="dashboard-field__label">Descripcion</span>
-            <textarea name="description" rows={2} className="dashboard-input dashboard-input--area" />
-          </label>
-          <label className="dashboard-field">
-            <span className="dashboard-field__label">Status</span>
-            <select name="status" defaultValue="preview" className="dashboard-input">
-              <option value="preview">Preview</option>
-              <option value="active">Active</option>
-              <option value="ended">Ended</option>
-            </select>
-          </label>
-          <label className="dashboard-field">
-            <span className="dashboard-field__label">Visibilidad</span>
-            <select name="visibility" defaultValue="visible" className="dashboard-input">
-              <option value="visible">Visible</option>
-              <option value="hidden">Hidden</option>
-            </select>
-          </label>
-          <label className="dashboard-field">
-            <span className="dashboard-field__label">Inicio</span>
-            <input name="starts_at" type="datetime-local" className="dashboard-input" />
-          </label>
-          <label className="dashboard-field">
-            <span className="dashboard-field__label">Fin</span>
-            <input name="ends_at" type="datetime-local" className="dashboard-input" />
-          </label>
-          <label className="dashboard-field">
-            <span className="dashboard-field__label">Cupo total (opcional)</span>
-            <input name="capacity_total" type="number" min={1} className="dashboard-input" />
-          </label>
+          <CatalogTextField name="title" label="Titulo" required />
+          <CatalogTextArea name="description" label="Descripcion" rows={2} wrapperClassName="md:col-span-2" />
+          <SelectField name="status" label="Status" size="sm" defaultValue="preview" options={[{ value: "preview", label: "Preview" }, { value: "active", label: "Active" }, { value: "ended", label: "Ended" }]}  selectClassName="text-[11px]" />
+          <SelectField name="visibility" label="Visibilidad" size="sm" defaultValue="visible" options={[{ value: "visible", label: "Visible" }, { value: "hidden", label: "Hidden" }]}  selectClassName="text-[11px]" />
+          <CatalogTextField name="starts_at" label="Inicio" type="datetime-local" />
+          <CatalogTextField name="ends_at" label="Fin" type="datetime-local" />
+          <CatalogTextField name="capacity_total" label="Cupo total (opcional)" type="number" min={1} />
           <section className="md:col-span-2 rounded-[12px] border border-[rgba(8,10,13,.14)] bg-white/78 p-3">
             <p className="text-[12px] font-black uppercase tracking-[0.1em] text-[rgba(8,10,13,.72)]">
               Items del drop
@@ -2199,26 +2082,26 @@ export function CatalogDashboardClient({
             <p className="mt-1 text-[11px] text-[rgba(8,10,13,.6)]">
               Selecciona aqui las publicaciones que van en este drop.
             </p>
-            <div className="mt-3 max-h-60 space-y-2 overflow-auto rounded-[12px] border border-(--border) bg-white/70 p-3">
+            <div className="mt-3 max-h-60 space-y-2 overflow-auto rounded-[12px] border border-hairline bg-white/70 p-3">
               {publications.map((publication) => {
                 const publicationDesign = designById.get(publication.design_id);
                 return (
                   <label
                     key={`create-drop-${publication.id}`}
-                    className="dashboard-check dashboard-check--tile dashboard-check--preview"
+                    className="flex items-start gap-3 rounded-md border border-hairline bg-soft-cloud p-3 cursor-pointer hover:border-info border-info/40 bg-info/5"
                   >
-                    <input type="checkbox" name="publication_ids" value={publication.id} />
-                    <span className="dashboard-check__body">
+                    <CheckboxControl name="publication_ids" value={publication.id} size="sm" />
+                    <span className="min-w-0 flex-1">
                       <DesignPreviewFlip
                         frontSrc={designImageBySide(publicationDesign, "front")}
                         backSrc={designImageBySide(publicationDesign, "back")}
                         fallbackLabel={publicationDesign?.name ?? publication.title}
                         compact
-                        className="dashboard-preview-flip--selector"
+                        className="cursor-pointer hover:border-info"
                       />
-                      <span className="dashboard-check__text">
-                        <span className="dashboard-check__title">{publication.title}</span>
-                        <small className="dashboard-check__meta">/{publication.slug}</small>
+                      <span className="text-xs text-ink">
+                        <span className="text-xs font-black text-ink">{publication.title}</span>
+                        <small className="text-[11px] text-mute">/{publication.slug}</small>
                       </span>
                     </span>
                   </label>
@@ -2226,7 +2109,7 @@ export function CatalogDashboardClient({
               })}
             </div>
           </section>
-          <button type="submit" className="dashboard-submit dashboard-submit--blue md:col-span-2">
+          <button type="submit" className="inline-flex min-h-11 items-center justify-center rounded-full border border-primary bg-primary px-6 text-xs font-black uppercase text-ink shadow-sm transition hover:bg-primary/90 inline-flex min-h-11 items-center justify-center rounded-full border border-info bg-info px-6 text-xs font-black uppercase text-white shadow-sm transition hover:bg-info/90 md:col-span-2">
             Guardar drop
           </button>
         </form>
@@ -2241,7 +2124,7 @@ export function CatalogDashboardClient({
       >
         {activeDesign ? (
           <>
-            <form onSubmit={submitCatalogForm(handleUpdateDesignAction)} className="dashboard-form-grid">
+            <form onSubmit={submitCatalogForm(handleUpdateDesignAction)} className="grid gap-4 sm:grid-cols-2">
               <FormErrorBag bag={activeModalErrorBag} className="md:col-span-2" />
               <input type="hidden" name="design_id" value={activeDesign.id} />
               <input type="hidden" name="has_variants" value={(() => {
@@ -2249,17 +2132,14 @@ export function CatalogDashboardClient({
                 if (activeCount === 1) return "false";
                 return "true";
               })()} />
-              <label className="dashboard-field md:col-span-2">
-                <span className="dashboard-field__label">Nombre</span>
-                <input name="name" defaultValue={activeDesign.name} className="dashboard-input" />
-              </label>
+              <CatalogTextField name="name" label="Nombre" defaultValue={activeDesign.name} wrapperClassName="md:col-span-2" />
               <div className="md:col-span-2">
                 <DesignPreviewFlip
                   frontSrc={designImageBySide(activeDesign, "front")}
                   backSrc={designImageBySide(activeDesign, "back")}
                   fallbackLabel={activeDesign.name}
                   compact
-                  className="dashboard-preview-flip--tile"
+                  className="aspect-square"
                 />
               </div>
               <ImageUploadField
@@ -2272,7 +2152,7 @@ export function CatalogDashboardClient({
                 label="Reemplazar imagen trasera"
                 initialPreviewSrc={designImageBySide(activeDesign, "back")}
               />
-              <button type="submit" className="dashboard-submit dashboard-submit--blue md:col-span-2">
+              <button type="submit" className="inline-flex min-h-11 items-center justify-center rounded-full border border-primary bg-primary px-6 text-xs font-black uppercase text-ink shadow-sm transition hover:bg-primary/90 inline-flex min-h-11 items-center justify-center rounded-full border border-info bg-info px-6 text-xs font-black uppercase text-white shadow-sm transition hover:bg-info/90 md:col-span-2">
                 Guardar diseno
               </button>
             </form>
@@ -2300,40 +2180,33 @@ export function CatalogDashboardClient({
                       />
                     </div>
                     <div className="grid gap-2">
-                      <label className="dashboard-field">
-                        <span className="dashboard-field__label">Nombre</span>
-                        <input
-                          name="name"
-                          defaultValue={variantDisplayName(variant)}
-                          className="dashboard-input"
-                        />
-                      </label>
-                      <div className="dashboard-asset-actions">
+                      <CatalogTextField name="name" label="Nombre" defaultValue={variantDisplayName(variant)} />
+                      <div className="flex items-center gap-2">
                         {variant.front_design_url ? (
                           <a
                             href={variant.front_design_url}
                             download={`${activeDesign.name}-${variantDisplayName(variant)}-frontal.png`}
-                            className="dashboard-mini-btn"
+                            className="inline-flex min-h-[28px] items-center justify-center rounded-full border border-hairline bg-soft-cloud px-2.5 text-[9px] font-black uppercase tracking-wider text-ink transition hover:border-info disabled:opacity-50 disabled:cursor-not-allowed"
                             target="_blank"
                             rel="noreferrer"
                           >
                             Descargar frontal PNG
                           </a>
                         ) : (
-                          <span className="dashboard-asset-actions__empty">Sin frontal disponible</span>
+                          <span className="text-xs text-mute">Sin frontal disponible</span>
                         )}
                         {variant.back_design_url ? (
                           <a
                             href={variant.back_design_url}
                             download={`${activeDesign.name}-${variantDisplayName(variant)}-trasera.png`}
-                            className="dashboard-mini-btn"
+                            className="inline-flex min-h-[28px] items-center justify-center rounded-full border border-hairline bg-soft-cloud px-2.5 text-[9px] font-black uppercase tracking-wider text-ink transition hover:border-info disabled:opacity-50 disabled:cursor-not-allowed"
                             target="_blank"
                             rel="noreferrer"
                           >
                             Descargar trasera PNG
                           </a>
                         ) : (
-                          <span className="dashboard-asset-actions__empty">Sin trasera disponible</span>
+                          <span className="text-xs text-mute">Sin trasera disponible</span>
                         )}
                       </div>
                       <ImageUploadField
@@ -2348,11 +2221,8 @@ export function CatalogDashboardClient({
                         initialPreviewSrc={variantImageBySide(variant, activeDesign, "back")}
                         optimizationMode="dtf"
                       />
-                      <label className="dashboard-check">
-                        <input type="checkbox" name="is_active" value="true" defaultChecked={variant.is_active} />
-                        <span>Activa (desmarca para quitarla)</span>
-                      </label>
-                      <button type="submit" className="dashboard-submit">
+                      <Checkbox name="is_active" value="true" defaultChecked={variant.is_active} size="sm" label="Activa (desmarca para quitarla)" />
+                      <button type="submit" className="inline-flex min-h-11 items-center justify-center rounded-full border border-primary bg-primary px-6 text-xs font-black uppercase text-ink shadow-sm transition hover:bg-primary/90">
                         Guardar variante
                       </button>
                     </div>
@@ -2369,7 +2239,7 @@ export function CatalogDashboardClient({
                 <button
                   type="button"
                   onClick={() => setNewVariantPanelOpen((previous) => !previous)}
-                  className="dashboard-mini-btn"
+                  className="inline-flex min-h-[28px] items-center justify-center rounded-full border border-hairline bg-soft-cloud px-2.5 text-[9px] font-black uppercase tracking-wider text-ink transition hover:border-info disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {newVariantPanelOpen ? "Cerrar" : "Agregar variante"}
                 </button>
@@ -2380,10 +2250,7 @@ export function CatalogDashboardClient({
                   className="mt-3 grid gap-2"
                 >
                   <input type="hidden" name="design_id" value={activeDesign.id} />
-                  <label className="dashboard-field">
-                    <span className="dashboard-field__label">Nombre</span>
-                    <input name="name" required className="dashboard-input" />
-                  </label>
+                  <CatalogTextField name="name" label="Nombre" required />
                   <div className="grid gap-2 md:grid-cols-2">
                     <ImageUploadField
                       name="front_design_file"
@@ -2398,11 +2265,8 @@ export function CatalogDashboardClient({
                       optimizationMode="dtf"
                     />
                   </div>
-                  <label className="dashboard-check">
-                    <input type="checkbox" name="is_active" value="true" defaultChecked />
-                    <span>Activa</span>
-                  </label>
-                  <button type="submit" className="dashboard-submit">
+                  <Checkbox name="is_active" value="true" defaultChecked size="sm" label="Activa" />
+                  <button type="submit" className="inline-flex min-h-11 items-center justify-center rounded-full border border-primary bg-primary px-6 text-xs font-black uppercase text-ink shadow-sm transition hover:bg-primary/90">
                     Crear variante
                   </button>
                 </form>
@@ -2420,47 +2284,27 @@ export function CatalogDashboardClient({
       >
         {activePublication ? (
           <>
-            <form onSubmit={submitCatalogForm(handleUpdatePublicationAction)} className="dashboard-form-grid">
+            <form onSubmit={submitCatalogForm(handleUpdatePublicationAction)} className="grid gap-4 sm:grid-cols-2">
               <FormErrorBag bag={activeModalErrorBag} className="md:col-span-2" />
               <input type="hidden" name="publication_id" value={activePublication.id} />
-              <label className="dashboard-field md:col-span-2">
-                <span className="dashboard-field__label">Titulo</span>
-                <input name="title" defaultValue={activePublication.title} className="dashboard-input" />
-              </label>
-              <label className="dashboard-field">
-                <span className="dashboard-field__label">Precio MXN</span>
-                <input
-                  name="price_mxn"
-                  type="number"
-                  min={0}
-                  defaultValue={activePublication.price_mxn}
-                  className="dashboard-input"
-                />
-              </label>
-              <label className="dashboard-field md:col-span-2">
-                <span className="dashboard-field__label">Descripcion</span>
-                <textarea
-                  name="description"
-                  rows={2}
-                  defaultValue={activePublication.description ?? ""}
-                  className="dashboard-input dashboard-input--area"
-                />
-              </label>
-              <label className="dashboard-field md:col-span-2">
-                <span className="dashboard-field__label">Categoria</span>
-                <select name="category" defaultValue={activePublication.category} className="dashboard-input">
-                  {PUBLICATION_CATEGORY_OPTIONS.some(
-                    (option) => option.value === activePublication.category
-                  ) ? null : (
-                    <option value={activePublication.category}>{titleCase(activePublication.category)}</option>
-                  )}
-                  {PUBLICATION_CATEGORY_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <CatalogTextField name="title" label="Titulo" defaultValue={activePublication.title} wrapperClassName="md:col-span-2" />
+              <CatalogTextField name="price_mxn" label="Precio MXN" type="number" min={0} defaultValue={activePublication.price_mxn} />
+              <CatalogTextArea name="description" label="Descripcion" rows={2} defaultValue={activePublication.description ?? ""} wrapperClassName="md:col-span-2" />
+              <SelectField
+                name="category"
+                label="Categoria"
+                size="sm"
+                defaultValue={activePublication.category}
+                options={[
+                  ...(PUBLICATION_CATEGORY_OPTIONS.some((option) => option.value === activePublication.category)
+                    ? []
+                    : [{ value: activePublication.category, label: titleCase(activePublication.category) }]),
+                  ...PUBLICATION_CATEGORY_OPTIONS,
+                ]}
+                wrapperClassName="md:col-span-2"
+
+                selectClassName="text-[11px]"
+              />
               {designs.length > 0 ? (
                 <SelectDesignCards
                   designs={designs}
@@ -2490,13 +2334,7 @@ export function CatalogDashboardClient({
                 }}
                 onVariantConfirmationChange={setEditPrintPlannerReady}
               />
-              <label className="dashboard-field">
-                <span className="dashboard-field__label">Visibilidad</span>
-                <select name="visibility" defaultValue={activePublication.visibility} className="dashboard-input">
-                  <option value="visible">Visible</option>
-                  <option value="hidden">Hidden</option>
-                </select>
-              </label>
+              <SelectField name="visibility" label="Visibilidad" size="sm" defaultValue={activePublication.visibility} options={[{ value: "visible", label: "Visible" }, { value: "hidden", label: "Hidden" }]}  selectClassName="text-[11px]" />
               <input
                 type="hidden"
                 name="informative_image_id"
@@ -2508,16 +2346,8 @@ export function CatalogDashboardClient({
                 initialPreviewSrc={activePublication.informative_image_url}
                 hint="Si no subes nada, se conserva la imagen actual o la default."
               />
-              <label className="dashboard-check">
-                <input
-                  type="checkbox"
-                  name="is_active"
-                  value="true"
-                  defaultChecked={activePublication.is_active}
-                />
-                <span>Activa</span>
-              </label>
-              <button type="submit" disabled={!editPrintPlannerReady} className="dashboard-submit md:col-span-2">
+              <Checkbox name="is_active" value="true" defaultChecked={activePublication.is_active} size="sm" label="Activa" />
+              <button type="submit" disabled={!editPrintPlannerReady} className="inline-flex min-h-11 items-center justify-center rounded-full border border-primary bg-primary px-6 text-xs font-black uppercase text-ink shadow-sm transition hover:bg-primary/90 md:col-span-2">
                 Guardar cambios
               </button>
             </form>
@@ -2525,18 +2355,18 @@ export function CatalogDashboardClient({
             <div className="mt-4 flex flex-wrap items-center gap-2.5">
               <form onSubmit={submitCatalogForm(handlePublishPublicationAction)}>
                 <input type="hidden" name="publication_id" value={activePublication.id} />
-                <button type="submit" className="dashboard-mini-btn">Publish</button>
+                <button type="submit" className="inline-flex min-h-[28px] items-center justify-center rounded-full border border-hairline bg-soft-cloud px-2.5 text-[9px] font-black uppercase tracking-wider text-ink transition hover:border-info disabled:opacity-50 disabled:cursor-not-allowed">Publish</button>
               </form>
               <form onSubmit={submitCatalogForm(handleUnpublishPublicationAction)}>
                 <input type="hidden" name="publication_id" value={activePublication.id} />
-                <button type="submit" className="dashboard-mini-btn dashboard-mini-btn--danger">
+                <button type="submit" className="inline-flex min-h-[28px] items-center justify-center rounded-full border border-hairline bg-soft-cloud px-2.5 text-[9px] font-black uppercase tracking-wider text-ink transition hover:border-info disabled:opacity-50 disabled:cursor-not-allowed border-sale/40 bg-sale/12 text-sale-deep">
                   Unpublish
                 </button>
               </form>
               <Link
                 href={`/producto/${activePublication.slug}`}
                 target="_blank"
-                className="dashboard-mini-btn inline-flex items-center"
+                className="inline-flex min-h-[28px] items-center justify-center rounded-full border border-hairline bg-soft-cloud px-2.5 text-[9px] font-black uppercase tracking-wider text-ink transition hover:border-info disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center"
               >
                 Ver cliente
               </Link>
@@ -2554,30 +2384,13 @@ export function CatalogDashboardClient({
       >
         {activeCollection ? (
           <>
-            <form onSubmit={submitCatalogForm(handleUpdateCollectionAction)} className="dashboard-form-grid">
+            <form onSubmit={submitCatalogForm(handleUpdateCollectionAction)} className="grid gap-4 sm:grid-cols-2">
               <FormErrorBag bag={activeModalErrorBag} className="md:col-span-2" />
               <input type="hidden" name="collection_id" value={activeCollection.id} />
-              <label className="dashboard-field md:col-span-2">
-                <span className="dashboard-field__label">Titulo</span>
-                <input name="title" defaultValue={activeCollection.title} className="dashboard-input" />
-              </label>
-              <label className="dashboard-field md:col-span-2">
-                <span className="dashboard-field__label">Descripcion</span>
-                <textarea
-                  name="description"
-                  rows={2}
-                  defaultValue={activeCollection.description ?? ""}
-                  className="dashboard-input dashboard-input--area"
-                />
-              </label>
-              <label className="dashboard-field md:col-span-2">
-                <span className="dashboard-field__label">Visibilidad</span>
-                <select name="visibility" defaultValue={activeCollection.visibility} className="dashboard-input">
-                  <option value="visible">Visible</option>
-                  <option value="hidden">Hidden</option>
-                </select>
-              </label>
-              <button type="submit" className="dashboard-submit md:col-span-2">
+              <CatalogTextField name="title" label="Titulo" defaultValue={activeCollection.title} wrapperClassName="md:col-span-2" />
+              <CatalogTextArea name="description" label="Descripcion" rows={2} defaultValue={activeCollection.description ?? ""} wrapperClassName="md:col-span-2" />
+              <SelectField name="visibility" label="Visibilidad" size="sm" defaultValue={activeCollection.visibility} options={[{ value: "visible", label: "Visible" }, { value: "hidden", label: "Hidden" }]} wrapperClassName="md:col-span-2"  selectClassName="text-[11px]" />
+              <button type="submit" className="inline-flex min-h-11 items-center justify-center rounded-full border border-primary bg-primary px-6 text-xs font-black uppercase text-ink shadow-sm transition hover:bg-primary/90 md:col-span-2">
                 Guardar coleccion
               </button>
             </form>
@@ -2591,38 +2404,37 @@ export function CatalogDashboardClient({
               <p className="text-[12px] font-black uppercase tracking-[0.12em] text-[rgba(8,10,13,.68)]">
                 Publicaciones de la coleccion
               </p>
-              <div className="mt-3 max-h-60 space-y-2 overflow-auto rounded-[14px] border border-(--border) bg-white/70 p-3">
+              <div className="mt-3 max-h-60 space-y-2 overflow-auto rounded-[14px] border border-hairline bg-white/70 p-3">
                 {publications.map((publication) => {
                   const publicationDesign = designById.get(publication.design_id);
                   return (
                     <label
                       key={`collection-${activeCollection.id}-${publication.id}`}
-                      className="dashboard-check dashboard-check--tile dashboard-check--preview"
+                      className="flex items-start gap-3 rounded-md border border-hairline bg-soft-cloud p-3 cursor-pointer hover:border-info border-info/40 bg-info/5"
                     >
-                      <input
-                        type="checkbox"
+                      <CheckboxControl
                         name="publication_ids"
                         value={publication.id}
                         defaultChecked={activeCollectionItemIds.has(publication.id)}
                       />
-                      <span className="dashboard-check__body">
+                      <span className="min-w-0 flex-1">
                         <DesignPreviewFlip
                           frontSrc={designImageBySide(publicationDesign, "front")}
                           backSrc={designImageBySide(publicationDesign, "back")}
                           fallbackLabel={publicationDesign?.name ?? publication.title}
                           compact
-                          className="dashboard-preview-flip--selector"
+                          className="cursor-pointer hover:border-info"
                         />
-                        <span className="dashboard-check__text">
-                          <span className="dashboard-check__title">{publication.title}</span>
-                          <small className="dashboard-check__meta">/{publication.slug}</small>
+                        <span className="text-xs text-ink">
+                          <span className="text-xs font-black text-ink">{publication.title}</span>
+                          <small className="text-[11px] text-mute">/{publication.slug}</small>
                         </span>
                       </span>
                     </label>
                   );
                 })}
               </div>
-              <button type="submit" className="dashboard-submit mt-3 w-full">
+              <button type="submit" className="inline-flex min-h-11 items-center justify-center rounded-full border border-primary bg-primary px-6 text-xs font-black uppercase text-ink shadow-sm transition hover:bg-primary/90 mt-3 w-full">
                 Reemplazar items
               </button>
             </form>
@@ -2631,7 +2443,7 @@ export function CatalogDashboardClient({
               <Link
                 href={`/colecciones/${activeCollection.slug}`}
                 target="_blank"
-                className="dashboard-mini-btn inline-flex items-center"
+                className="inline-flex min-h-[28px] items-center justify-center rounded-full border border-hairline bg-soft-cloud px-2.5 text-[9px] font-black uppercase tracking-wider text-ink transition hover:border-info disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center"
               >
                 Ver coleccion cliente
               </Link>
@@ -2649,66 +2461,17 @@ export function CatalogDashboardClient({
       >
         {activeDrop ? (
           <>
-            <form onSubmit={submitCatalogForm(handleUpdateDropAction)} className="dashboard-form-grid">
+            <form onSubmit={submitCatalogForm(handleUpdateDropAction)} className="grid gap-4 sm:grid-cols-2">
               <FormErrorBag bag={activeModalErrorBag} className="md:col-span-2" />
               <input type="hidden" name="drop_id" value={activeDrop.id} />
-              <label className="dashboard-field md:col-span-2">
-                <span className="dashboard-field__label">Titulo</span>
-                <input name="title" defaultValue={activeDrop.title} className="dashboard-input" />
-              </label>
-              <label className="dashboard-field">
-                <span className="dashboard-field__label">Status</span>
-                <select name="status" defaultValue={activeDrop.status} className="dashboard-input">
-                  <option value="preview">Preview</option>
-                  <option value="active">Active</option>
-                  <option value="ended">Ended</option>
-                </select>
-              </label>
-              <label className="dashboard-field">
-                <span className="dashboard-field__label">Visibilidad</span>
-                <select name="visibility" defaultValue={activeDrop.visibility} className="dashboard-input">
-                  <option value="visible">Visible</option>
-                  <option value="hidden">Hidden</option>
-                </select>
-              </label>
-              <label className="dashboard-field">
-                <span className="dashboard-field__label">Inicio</span>
-                <input
-                  name="starts_at"
-                  type="datetime-local"
-                  defaultValue={toDateTimeLocalValue(activeDrop.starts_at)}
-                  className="dashboard-input"
-                />
-              </label>
-              <label className="dashboard-field">
-                <span className="dashboard-field__label">Fin</span>
-                <input
-                  name="ends_at"
-                  type="datetime-local"
-                  defaultValue={toDateTimeLocalValue(activeDrop.ends_at)}
-                  className="dashboard-input"
-                />
-              </label>
-              <label className="dashboard-field">
-                <span className="dashboard-field__label">Cupo total</span>
-                <input
-                  name="capacity_total"
-                  type="number"
-                  min={1}
-                  defaultValue={activeDrop.capacity_total ?? ""}
-                  className="dashboard-input"
-                />
-              </label>
-              <label className="dashboard-field md:col-span-2">
-                <span className="dashboard-field__label">Descripcion</span>
-                <textarea
-                  name="description"
-                  rows={2}
-                  defaultValue={activeDrop.description ?? ""}
-                  className="dashboard-input dashboard-input--area"
-                />
-              </label>
-              <button type="submit" className="dashboard-submit dashboard-submit--blue md:col-span-2">
+              <CatalogTextField name="title" label="Titulo" defaultValue={activeDrop.title} wrapperClassName="md:col-span-2" />
+              <SelectField name="status" label="Status" size="sm" defaultValue={activeDrop.status} options={[{ value: "preview", label: "Preview" }, { value: "active", label: "Active" }, { value: "ended", label: "Ended" }]}  selectClassName="text-[11px]" />
+              <SelectField name="visibility" label="Visibilidad" size="sm" defaultValue={activeDrop.visibility} options={[{ value: "visible", label: "Visible" }, { value: "hidden", label: "Hidden" }]}  selectClassName="text-[11px]" />
+              <CatalogTextField name="starts_at" label="Inicio" type="datetime-local" defaultValue={toDateTimeLocalValue(activeDrop.starts_at)} />
+              <CatalogTextField name="ends_at" label="Fin" type="datetime-local" defaultValue={toDateTimeLocalValue(activeDrop.ends_at)} />
+              <CatalogTextField name="capacity_total" label="Cupo total" type="number" min={1} defaultValue={activeDrop.capacity_total ?? ""} />
+              <CatalogTextArea name="description" label="Descripcion" rows={2} defaultValue={activeDrop.description ?? ""} wrapperClassName="md:col-span-2" />
+              <button type="submit" className="inline-flex min-h-11 items-center justify-center rounded-full border border-primary bg-primary px-6 text-xs font-black uppercase text-ink shadow-sm transition hover:bg-primary/90 inline-flex min-h-11 items-center justify-center rounded-full border border-info bg-info px-6 text-xs font-black uppercase text-white shadow-sm transition hover:bg-info/90 md:col-span-2">
                 Guardar drop
               </button>
             </form>
@@ -2722,38 +2485,37 @@ export function CatalogDashboardClient({
               <p className="text-[12px] font-black uppercase tracking-[0.12em] text-[rgba(8,10,13,.68)]">
                 Publicaciones del drop
               </p>
-              <div className="mt-3 max-h-60 space-y-2 overflow-auto rounded-[14px] border border-(--border) bg-white/70 p-3">
+              <div className="mt-3 max-h-60 space-y-2 overflow-auto rounded-[14px] border border-hairline bg-white/70 p-3">
                 {publications.map((publication) => {
                   const publicationDesign = designById.get(publication.design_id);
                   return (
                     <label
                       key={`drop-${activeDrop.id}-${publication.id}`}
-                      className="dashboard-check dashboard-check--tile dashboard-check--preview"
+                      className="flex items-start gap-3 rounded-md border border-hairline bg-soft-cloud p-3 cursor-pointer hover:border-info border-info/40 bg-info/5"
                     >
-                      <input
-                        type="checkbox"
+                      <CheckboxControl
                         name="publication_ids"
                         value={publication.id}
                         defaultChecked={activeDropItemIds.has(publication.id)}
                       />
-                      <span className="dashboard-check__body">
+                      <span className="min-w-0 flex-1">
                         <DesignPreviewFlip
                           frontSrc={designImageBySide(publicationDesign, "front")}
                           backSrc={designImageBySide(publicationDesign, "back")}
                           fallbackLabel={publicationDesign?.name ?? publication.title}
                           compact
-                          className="dashboard-preview-flip--selector"
+                          className="cursor-pointer hover:border-info"
                         />
-                        <span className="dashboard-check__text">
-                          <span className="dashboard-check__title">{publication.title}</span>
-                          <small className="dashboard-check__meta">/{publication.slug}</small>
+                        <span className="text-xs text-ink">
+                          <span className="text-xs font-black text-ink">{publication.title}</span>
+                          <small className="text-[11px] text-mute">/{publication.slug}</small>
                         </span>
                       </span>
                     </label>
                   );
                 })}
               </div>
-              <button type="submit" className="dashboard-submit mt-3 w-full">
+              <button type="submit" className="inline-flex min-h-11 items-center justify-center rounded-full border border-primary bg-primary px-6 text-xs font-black uppercase text-ink shadow-sm transition hover:bg-primary/90 mt-3 w-full">
                 Reemplazar items
               </button>
             </form>
@@ -2761,14 +2523,14 @@ export function CatalogDashboardClient({
             <div className="mt-4 flex flex-wrap items-center gap-2.5">
               <form onSubmit={submitCatalogForm(handleEndDropNowAction)}>
                 <input type="hidden" name="drop_id" value={activeDrop.id} />
-                <button type="submit" className="dashboard-mini-btn dashboard-mini-btn--danger">
+                <button type="submit" className="inline-flex min-h-[28px] items-center justify-center rounded-full border border-hairline bg-soft-cloud px-2.5 text-[9px] font-black uppercase tracking-wider text-ink transition hover:border-info disabled:opacity-50 disabled:cursor-not-allowed border-sale/40 bg-sale/12 text-sale-deep">
                   Terminar ahora
                 </button>
               </form>
               <Link
                 href={`/drops/${activeDrop.slug}`}
                 target="_blank"
-                className="dashboard-mini-btn inline-flex items-center"
+                className="inline-flex min-h-[28px] items-center justify-center rounded-full border border-hairline bg-soft-cloud px-2.5 text-[9px] font-black uppercase tracking-wider text-ink transition hover:border-info disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center"
               >
                 Ver drop cliente
               </Link>

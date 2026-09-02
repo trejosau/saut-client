@@ -4,7 +4,8 @@
 import * as React from "react";
 
 import { useCart } from "@/core/cart";
-import { RadioTiles, type RadioTileOption } from "@/core/design-system";
+import { Button, Modal, NumberStepper, RadioTiles, type RadioTileOption } from "@/core/design-system";
+import { requestJson } from "@/core/lib/api/fetcher";
 import type {
     CatalogDesign,
     CatalogMockup,
@@ -599,24 +600,19 @@ export default function ProductConfigurator({
         });
         const controller = new AbortController();
 
-        setStockState("loading");
-        setStockError(null);
-        setInventoryRows([]);
+        queueMicrotask(() => {
+            if (controller.signal.aborted) return;
+            setStockState("loading");
+            setStockError(null);
+            setInventoryRows([]);
+        });
 
         void (async () => {
             try {
-                const response = await fetch(
+                const payload = await requestJson<InventoryItemsResponse>(
                     `${INVENTORY_API_BASE_URL}/inventory/items?${params.toString()}`,
-                    {
-                        method: "GET",
-                        cache: "no-store",
-                        signal: controller.signal,
-                    }
+                    { method: "GET", cache: "no-store", signal: controller.signal }
                 );
-                if (!response.ok) {
-                    throw new Error(`Stock request failed (${response.status})`);
-                }
-                const payload = (await response.json()) as InventoryItemsResponse;
                 const nextRows = Array.isArray(payload.items)
                     ? payload.items
                           .map((item) => parseInventoryItemRow(item))
@@ -773,64 +769,52 @@ export default function ProductConfigurator({
     React.useEffect(() => {
         const nextType = inferTypeUi(publication);
         const nextGramaje = GRAMAJES_BY_TYPE[nextType][0] ?? "240";
-        setTypeUi(nextType);
-        setGramaje(nextGramaje);
+        queueMicrotask(() => {
+            setTypeUi(nextType);
+            setGramaje(nextGramaje);
+        });
     }, [publication]);
 
     React.useEffect(() => {
-        setGramaje((prev) =>
-            clampToEnabled(
-                prev,
-                gramajePreset,
-                (candidate) =>
-                    stockReady && (gramajeAvailableByValue.get(candidate) ?? 0) <= 0,
-                gramajePreset[0] ?? "240"
-            )
-        );
+        queueMicrotask(() => setGramaje((prev) =>
+            clampToEnabled(prev, gramajePreset, (candidate) =>
+                stockReady && (gramajeAvailableByValue.get(candidate) ?? 0) <= 0,
+            gramajePreset[0] ?? "240")
+        ));
     }, [gramajeAvailableByValue, gramajePreset, stockReady]);
 
     React.useEffect(() => {
-        setSize((prev) =>
-            clampToEnabled(
-                prev,
-                sizePreset,
-                (candidate) =>
-                    stockReady && (sizeAvailableByValue.get(candidate) ?? 0) <= 0,
-                sizePreset[0] ?? "m"
-            )
-        );
+        queueMicrotask(() => setSize((prev) =>
+            clampToEnabled(prev, sizePreset, (candidate) =>
+                stockReady && (sizeAvailableByValue.get(candidate) ?? 0) <= 0,
+            sizePreset[0] ?? "m")
+        ));
     }, [sizeAvailableByValue, sizePreset, stockReady]);
 
     React.useEffect(() => {
         const colorValues = colorPreset.map((item) => item.value);
-        setColor((prev) =>
-            clampToEnabled(
-                prev,
-                colorValues,
-                (candidate) =>
-                    stockReady && (colorAvailableByValue.get(candidate) ?? 0) <= 0,
-                colorPreset[0]?.value ?? "negra"
-            )
-        );
+        queueMicrotask(() => setColor((prev) =>
+            clampToEnabled(prev, colorValues, (candidate) =>
+                stockReady && (colorAvailableByValue.get(candidate) ?? 0) <= 0,
+            colorPreset[0]?.value ?? "negra")
+        ));
     }, [colorAvailableByValue, colorPreset, stockReady]);
 
     React.useEffect(() => {
-        setDesignId((prev) => {
+        queueMicrotask(() => setDesignId((prev) => {
             if (designOptions.some((option) => option.value === prev)) return prev;
             return designOptions[0]?.value ?? "design-main";
-        });
+        }));
     }, [designOptions]);
 
     React.useEffect(() => {
-        if (!stockReady) {
-            setQuantity(1);
-            return;
-        }
-        if (selectedSizeAvailable <= 0) {
-            setQuantity(1);
-            return;
-        }
-        setQuantity((prev) => Math.min(clampQty(prev), selectedSizeAvailable));
+        queueMicrotask(() => {
+            if (!stockReady || selectedSizeAvailable <= 0) {
+                setQuantity(1);
+                return;
+            }
+            setQuantity((prev) => Math.min(clampQty(prev), selectedSizeAvailable));
+        });
     }, [selectedSizeAvailable, stockReady]);
 
     React.useEffect(() => {
@@ -1002,7 +986,6 @@ export default function ProductConfigurator({
         selectedSizeAvailable <= LOW_STOCK_LIMIT;
     const outOfStock = stockState === "ready" && selectedSizeAvailable <= 0;
     const canAddToCart = stockState === "ready" && selectedSizeAvailable > 0;
-    const canIncreaseQty = canAddToCart && quantity < selectedSizeAvailable;
     const stockIndicatorClass =
         stockState === "loading"
             ? "bg-[rgba(8,10,13,.45)]"
@@ -1025,12 +1008,12 @@ export default function ProductConfigurator({
                   : `Sin stock disponible para ${size.toUpperCase()}.`
               : "";
     const stockFeedbackTone = justAdded
-        ? "text-(--saut-blue)"
+        ? "text-info"
         : stockState === "loading"
-          ? "text-(--muted)"
+          ? "text-mute"
           : stockState === "error" || outOfStock
             ? "text-[rgba(188,69,37,.9)]"
-            : "text-(--muted)";
+            : "text-mute";
 
     const handleAddToCart = React.useCallback(() => {
         if (!canAddToCart) return;
@@ -1100,25 +1083,24 @@ export default function ProductConfigurator({
     ]);
 
     const lineTotal = publication.price_mxn * quantity;
-    const canDecreaseQty = quantity > 1;
 
     return (
         <div className="grid gap-5">
             <div>
-                <p className="text-[11px] font-black tracking-[0.18em] uppercase text-(--saut-navy) opacity-75">
+                <p className="text-[11px] font-black tracking-[0.18em] uppercase text-charcoal opacity-75">
                     {publication.category}
                 </p>
-                <h1 className="mt-1 text-[28px] sm:text-[34px] font-black tracking-[0.05em] uppercase text-(--text)">
+                <h1 className="mt-1 text-[28px] sm:text-[34px] font-black tracking-[0.05em] uppercase text-ink">
                     {publication.title}
                 </h1>
-                <p className="mt-3 text-[14px] leading-relaxed text-(--text) opacity-85">
+                <p className="mt-3 text-[14px] leading-relaxed text-ink opacity-85">
                     {publication.description ?? "Configura tu prenda y personalizala con tu estilo."}
                 </p>
             </div>
 
             <section className="grid items-start gap-4 sm:gap-5 lg:grid-cols-[108px_minmax(0,1fr)_390px] xl:grid-cols-[114px_minmax(0,1fr)_410px]">
                 <aside className="order-2 lg:order-1">
-                    <div className="text-[11px] font-black tracking-[0.14em] uppercase text-(--text)">
+                    <div className="text-[11px] font-black tracking-[0.14em] uppercase text-ink">
                         Visualizador
                     </div>
                     <div className="mt-3 grid grid-cols-3 gap-2 lg:grid-cols-1">
@@ -1129,10 +1111,10 @@ export default function ProductConfigurator({
                                 onClick={() => setActivePreview(item.mode)}
                                 className={[
                                     "group relative overflow-hidden rounded-2xl border bg-[rgba(255,255,255,.38)] p-1.5 text-left transition",
-                                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--saut-ring)]",
+                                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-info)]",
                                     activePreview === item.mode
-                                        ? "border-(--saut-blue) shadow-[0_16px_30px_rgba(5,122,168,.22)]"
-                                        : "border-(--border) hover:border-(--text) hover:shadow-[0_12px_24px_rgba(8,10,13,.1)]",
+                                        ? "border-info shadow-[0_16px_30px_rgba(5,122,168,.22)]"
+                                        : "border-hairline hover:border-ink hover:shadow-[0_12px_24px_rgba(8,10,13,.1)]",
                                 ].join(" ")}
                                 aria-pressed={activePreview === item.mode}
                             >
@@ -1148,7 +1130,7 @@ export default function ProductConfigurator({
                                     />
                                 </div>
                                 <div className="px-1 pb-1 pt-2 text-center">
-                                    <p className="text-[11px] font-black tracking-[0.12em] uppercase text-(--text)">
+                                    <p className="text-[11px] font-black tracking-[0.12em] uppercase text-ink">
                                         {item.label}
                                     </p>
                                 </div>
@@ -1158,16 +1140,16 @@ export default function ProductConfigurator({
                             type="button"
                             onClick={() => setInfoOpen(true)}
                             className="
-                group relative overflow-hidden rounded-2xl border border-(--border)
+                group relative overflow-hidden rounded-2xl border border-hairline
                 bg-[rgba(255,255,255,.26)] backdrop-blur-[8px]
                 p-1.5 text-left transition
-                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--saut-ring)]
-                hover:border-(--saut-blue) hover:shadow-[0_12px_24px_rgba(8,10,13,.1)]
+                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-info)]
+                hover:border-info hover:shadow-[0_12px_24px_rgba(8,10,13,.1)]
               "
                             aria-label="Abrir informacion"
                         >
                             <div className="grid h-[110px] sm:h-[122px] w-full place-items-center rounded-xl border border-[rgba(8,10,13,.08)] bg-[radial-gradient(80%_70%_at_50%_35%,rgba(255,255,255,.46),rgba(5,122,168,.14)_65%,rgba(5,122,168,.06)_100%)]">
-                                <span className="inline-flex h-9 min-w-[62px] items-center justify-center rounded-full border border-[rgba(8,10,13,.24)] bg-[rgba(255,255,255,.58)] px-3 text-[11px] font-black tracking-[0.12em] uppercase leading-none text-(--saut-navy) transition group-hover:scale-[1.04]">
+                                <span className="inline-flex h-9 min-w-[62px] items-center justify-center rounded-full border border-[rgba(8,10,13,.24)] bg-[rgba(255,255,255,.58)] px-3 text-[11px] font-black tracking-[0.12em] uppercase leading-none text-charcoal transition group-hover:scale-[1.04]">
                                     INFO
                                 </span>
                             </div>
@@ -1175,7 +1157,7 @@ export default function ProductConfigurator({
                     </div>
                 </aside>
 
-                <div className="order-1 lg:order-2 rounded-[26px] border border-(--border) bg-[rgba(255,255,255,.38)] p-3 sm:p-4">
+                <div className="order-1 lg:order-2 rounded-[26px] border border-hairline bg-[rgba(255,255,255,.38)] p-3 sm:p-4">
                     <div className="relative overflow-hidden rounded-[22px] border border-[rgba(8,10,13,.08)] bg-[radial-gradient(90%_72%_at_50%_18%,rgba(255,255,255,.62),rgba(5,122,168,.08)_62%,rgba(5,122,168,.12)_100%)]">
                         <img
                             src={activePreviewImage}
@@ -1229,9 +1211,9 @@ export default function ProductConfigurator({
                                                     onClick={() => setDesignId(option.value)}
                                                     className={[
                                                         "group relative grid h-11 w-11 sm:h-12 sm:w-12 shrink-0 place-items-center overflow-hidden rounded-xl border transition",
-                                                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--saut-ring)]",
+                                                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-info)]",
                                                         checked
-                                                            ? "border-(--saut-yellow) bg-[rgba(255,217,66,.18)] shadow-[0_10px_22px_rgba(255,217,66,.24)]"
+                                                            ? "border-primary bg-[rgba(255,217,66,.18)] shadow-[0_10px_22px_rgba(255,217,66,.24)]"
                                                             : "border-[rgba(255,255,255,.26)] bg-[rgba(255,255,255,.08)] hover:border-white/55 hover:bg-[rgba(255,255,255,.14)]",
                                                     ].join(" ")}
                                                     aria-pressed={checked}
@@ -1268,17 +1250,17 @@ export default function ProductConfigurator({
                     </div>
                 </div>
 
-                <aside className="order-3 rounded-[24px] border border-(--border) bg-[rgba(255,255,255,.36)] p-3.5 sm:p-5 lg:sticky lg:top-24">
+                <aside className="order-3 rounded-[24px] border border-hairline bg-[rgba(255,255,255,.36)] p-3.5 sm:p-5 lg:sticky lg:top-24">
                     <div className="flex items-start justify-between gap-3">
                         <div>
-                            <div className="text-[16px] font-black tracking-[0.08em] uppercase text-(--text)">
+                            <div className="text-[16px] font-black tracking-[0.08em] uppercase text-ink">
                                 Configurador
                             </div>
-                            <p className="mt-1 text-[12px] text-(--muted)">
+                            <p className="mt-1 text-[12px] text-mute">
                                 Ajusta tipo, talla, color y diseno.
                             </p>
                         </div>
-                        <span className="inline-flex rounded-full border border-(--border) bg-[rgba(255,217,66,.34)] px-3 py-1 text-[10px] font-black tracking-[0.1em] uppercase text-(--saut-navy)">
+                        <span className="inline-flex rounded-full border border-hairline bg-[rgba(255,217,66,.34)] px-3 py-1 text-[10px] font-black tracking-[0.1em] uppercase text-charcoal">
                             {selectedTypeLabel}
                         </span>
                     </div>
@@ -1289,7 +1271,7 @@ export default function ProductConfigurator({
                                 stockIndicatorClass,
                             ].join(" ")}
                         />
-                        <span className="text-[10px] font-black tracking-[0.11em] uppercase text-(--text)">
+                        <span className="text-[10px] font-black tracking-[0.11em] uppercase text-ink">
                             {stockLabel}
                         </span>
                     </div>
@@ -1328,14 +1310,14 @@ export default function ProductConfigurator({
                                             outOfStockOption
                                                 ? "border-[rgba(8,10,13,.16)] bg-[rgba(233,226,196,.78)]"
                                                 : checked
-                                                  ? "border-(--saut-yellow) bg-[rgba(255,217,66,.23)] shadow-[0_8px_20px_rgba(255,217,66,.2)]"
+                                                  ? "border-primary bg-[rgba(255,217,66,.23)] shadow-[0_8px_20px_rgba(255,217,66,.2)]"
                                                   : "border-[rgba(8,10,13,.14)] bg-[rgba(255,255,255,.8)]",
                                         ].join(" ")}
                                     >
                                         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(75%_80%_at_50%_18%,rgba(255,255,255,.48),rgba(255,255,255,0)_66%)]" />
                                         <div
                                             className={[
-                                                "relative z-[1] grid h-full place-items-center px-1 text-center text-[12px] sm:text-[13px] font-black tracking-[0.1em] uppercase text-(--text)",
+                                                "relative z-[1] grid h-full place-items-center px-1 text-center text-[12px] sm:text-[13px] font-black tracking-[0.1em] uppercase text-ink",
                                             ].join(" ")}
                                         >
                                             {option.label}
@@ -1372,14 +1354,14 @@ export default function ProductConfigurator({
                                             outOfStockOption
                                                 ? "border-[rgba(8,10,13,.16)] bg-[rgba(233,226,196,.78)]"
                                                 : checked
-                                                  ? "border-(--saut-yellow) bg-[rgba(255,217,66,.23)] shadow-[0_8px_20px_rgba(255,217,66,.2)]"
+                                                  ? "border-primary bg-[rgba(255,217,66,.23)] shadow-[0_8px_20px_rgba(255,217,66,.2)]"
                                                   : "border-[rgba(8,10,13,.14)] bg-[rgba(255,255,255,.8)]",
                                         ].join(" ")}
                                     >
                                         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(75%_80%_at_50%_18%,rgba(255,255,255,.48),rgba(255,255,255,0)_66%)]" />
                                         <div
                                             className={[
-                                                "relative z-[1] grid h-full place-items-center text-[15px] font-black tracking-[0.12em] uppercase text-(--text)",
+                                                "relative z-[1] grid h-full place-items-center text-[15px] font-black tracking-[0.12em] uppercase text-ink",
                                             ].join(" ")}
                                         >
                                             {option.label}
@@ -1415,7 +1397,7 @@ export default function ProductConfigurator({
                                             option.disabled
                                                 ? "border-[rgba(8,10,13,.16)] bg-[rgba(233,226,196,.78)]"
                                                 : checked
-                                                  ? "border-(--saut-yellow) bg-[rgba(255,217,66,.19)] shadow-[0_9px_20px_rgba(255,217,66,.2)]"
+                                                  ? "border-primary bg-[rgba(255,217,66,.19)] shadow-[0_9px_20px_rgba(255,217,66,.2)]"
                                                   : "border-[rgba(8,10,13,.14)] bg-[rgba(255,255,255,.8)]",
                                         ].join(" ")}
                                     >
@@ -1457,89 +1439,40 @@ export default function ProductConfigurator({
 
                     </div>
 
-                    <div className="mt-3 rounded-2xl border border-(--border) bg-[rgba(255,255,255,.58)] p-2 shadow-[0_14px_32px_rgba(8,10,13,.06)]">
+                    <div className="mt-3 rounded-2xl border border-hairline bg-[rgba(255,255,255,.58)] p-2 shadow-[0_14px_32px_rgba(8,10,13,.06)]">
                         <div className="flex items-center justify-between gap-2 text-[10px] font-black tracking-[0.13em] uppercase">
-                            <span className="text-(--muted)">Precio unitario</span>
-                            <span className="text-(--text)">${formatMXN(publication.price_mxn)}</span>
+                            <span className="text-mute">Precio unitario</span>
+                            <span className="text-ink">${formatMXN(publication.price_mxn)}</span>
                         </div>
                         <div className="mt-0.5 flex items-center justify-between gap-2">
-                            <span className="text-[11px] font-black tracking-[0.13em] uppercase text-(--muted)">
+                            <span className="text-[11px] font-black tracking-[0.13em] uppercase text-mute">
                                 Total
                             </span>
-                            <span className="text-[20px] font-black tracking-[0.08em] text-(--saut-navy)">
+                            <span className="text-[20px] font-black tracking-[0.08em] text-charcoal">
                                 ${formatMXN(lineTotal)}
                             </span>
                         </div>
 
                         <div className="mt-1.5 flex items-center gap-1.5">
-                            <div className="inline-flex items-center overflow-hidden rounded-full border border-(--border) bg-(--surface)">
-                                <button
-                                    type="button"
-                                    onClick={() =>
-                                        setQuantity((prev) =>
-                                            canIncreaseQty
-                                                ? Math.min(selectedSizeAvailable, prev + 1)
-                                                : prev
-                                        )
-                                    }
-                                    disabled={!canIncreaseQty}
-                                    className={[
-                                        "grid h-6 w-6 place-items-center text-[12px] font-black transition",
-                                        canIncreaseQty
-                                            ? "hover:bg-[rgba(8,10,13,.08)]"
-                                            : "cursor-not-allowed opacity-40",
-                                    ].join(" ")}
-                                    aria-label="Aumentar cantidad"
-                                >
-                                    +
-                                </button>
-                                <input
-                                    type="number"
-                                    min={1}
-                                    max={canAddToCart ? selectedSizeAvailable : 1}
-                                    step={1}
-                                    value={quantity}
-                                    onChange={(event) => {
-                                        const next = clampQty(
-                                            Number.parseInt(event.target.value || "1", 10)
-                                        );
-                                        if (!canAddToCart) {
-                                            setQuantity(1);
-                                            return;
-                                        }
-                                        setQuantity(Math.min(next, selectedSizeAvailable));
-                                    }}
-                                    className="h-6 w-7 border-x border-(--border) bg-transparent text-center text-[9.5px] font-black outline-none focus-visible:bg-[rgba(255,255,255,.7)]"
-                                    aria-label="Cantidad"
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setQuantity((prev) => Math.max(1, prev - 1))}
-                                    disabled={!canDecreaseQty}
-                                    className={[
-                                        "grid h-6 w-6 place-items-center text-[12px] font-black transition",
-                                        canDecreaseQty
-                                            ? "hover:bg-[rgba(8,10,13,.08)]"
-                                            : "cursor-not-allowed opacity-40",
-                                    ].join(" ")}
-                                    aria-label="Disminuir cantidad"
-                                >
-                                    -
-                                </button>
-                            </div>
-                            <button
+                            <NumberStepper
+                                size="sm"
+                                value={quantity}
+                                min={1}
+                                max={canAddToCart ? selectedSizeAvailable : 1}
+                                onValueChange={(next) => setQuantity(canAddToCart ? Math.min(clampQty(next), selectedSizeAvailable) : 1)}
+                                aria-label="cantidad"
+                            />
+                            <Button
                                 type="button"
+                                variant="primary"
+                                size="sm"
+                                fullWidth
                                 onClick={handleAddToCart}
                                 disabled={!canAddToCart}
-                                className={[
-                                    "h-6 flex-1 rounded-[999px] border border-(--border) bg-(--saut-yellow) text-(--saut-black) text-[9px] font-black tracking-[0.11em] uppercase shadow-[0_14px_30px_rgba(8,10,13,.14)] transition hover:-translate-y-[1px] hover:bg-(--saut-blue) hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--saut-ring)]",
-                                    canAddToCart
-                                        ? ""
-                                        : "cursor-not-allowed opacity-45 hover:translate-y-0 hover:bg-(--saut-yellow) hover:text-(--saut-black)",
-                                ].join(" ")}
+                                className="h-7 flex-1 rounded-[999px] px-2 text-[9px]"
                             >
                                 {canAddToCart ? "Agregar al carrito" : "Sin disponibilidad"}
-                            </button>
+                            </Button>
                         </div>
 
                         <p
@@ -1557,40 +1490,22 @@ export default function ProductConfigurator({
                 </aside>
             </section>
 
-            {infoOpen ? (
-                <div className="fixed inset-0 z-[140] grid place-items-center p-4 sm:p-6">
-                    <button
-                        type="button"
-                        onClick={() => setInfoOpen(false)}
-                        className="absolute inset-0 bg-[rgba(8,10,13,.58)]"
-                        aria-label="Cerrar modal de info"
-                    />
-                    <div className="relative z-[1] w-full max-w-[980px] overflow-hidden rounded-2xl border border-[rgba(255,255,255,.28)] bg-[rgba(12,15,20,.86)] shadow-[0_34px_80px_rgba(0,0,0,.5)]">
-                        <div className="flex items-center justify-between border-b border-[rgba(255,255,255,.16)] px-3 py-2.5 sm:px-4">
-                            <div className="text-[11px] font-black tracking-[0.14em] uppercase text-white/90">
-                                Info de producto
-                            </div>
-                            <button
-                                type="button"
-                                onClick={() => setInfoOpen(false)}
-                                className="grid h-8 w-8 place-items-center rounded-full border border-[rgba(255,255,255,.28)] text-white transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--saut-ring)]"
-                                aria-label="Cerrar info"
-                            >
-                                x
-                            </button>
-                        </div>
-                        <div className="max-h-[78vh] overflow-auto p-2 sm:p-3">
-                            <img
-                                src={previewInfo}
-                                alt={`${publication.title} info`}
-                                className="mx-auto h-auto w-full rounded-xl object-contain"
-                                loading="eager"
-                                decoding="async"
-                            />
-                        </div>
-                    </div>
-                </div>
-            ) : null}
+            <Modal
+                open={infoOpen}
+                onClose={() => setInfoOpen(false)}
+                title="Info de producto"
+                size="lg"
+                className="border-[rgba(255,255,255,.28)] bg-[rgba(12,15,20,.94)] text-white shadow-[0_34px_80px_rgba(0,0,0,.5)]"
+                contentClassName="max-h-[78vh] bg-[rgba(12,15,20,.86)] p-2 sm:p-3"
+            >
+                <img
+                    src={previewInfo}
+                    alt={`${publication.title} info`}
+                    className="mx-auto h-auto w-full rounded-xl object-contain"
+                    loading="eager"
+                    decoding="async"
+                />
+            </Modal>
         </div>
     );
 }

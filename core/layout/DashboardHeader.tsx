@@ -7,14 +7,14 @@ export async function DashboardHeader() {
   const modules = access?.modules ?? [];
 
   return (
-    <header className="border-b border-(--border) bg-[rgba(255,255,255,.34)] backdrop-blur-[8px]">
+    <header className="border-b border-hairline bg-[rgba(255,255,255,.34)] backdrop-blur-[8px]">
       <div className="w-full px-4 sm:px-8 lg:px-14">
         <div className="min-h-16 py-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-[10px] font-black tracking-[0.16em] uppercase text-(--saut-navy)">
+            <p className="text-[10px] font-black tracking-[0.16em] uppercase text-charcoal">
               SAUT Staff
             </p>
-            <p className="text-[18px] font-black tracking-[0.04em] uppercase text-(--text)">
+            <p className="text-[18px] font-black tracking-[0.04em] uppercase text-ink">
               Dashboard
             </p>
           </div>
@@ -24,14 +24,14 @@ export async function DashboardHeader() {
               <Link
                 key={module.key}
                 href={module.href}
-                className="inline-flex items-center justify-center rounded-[999px] border border-(--border) bg-[rgba(255,255,255,.72)] px-4 py-2 text-[10px] font-black tracking-[0.12em] uppercase text-(--text) transition hover:bg-white"
+                className="inline-flex items-center justify-center rounded-[999px] border border-hairline bg-[rgba(255,255,255,.72)] px-4 py-2 text-[10px] font-black tracking-[0.12em] uppercase text-ink transition hover:bg-white"
               >
                 {module.title}
               </Link>
             ))}
             <Link
               href="/"
-              className="inline-flex items-center justify-center rounded-[999px] border border-(--border) bg-[rgba(255,255,255,.72)] px-4 py-2 text-[10px] font-black tracking-[0.12em] uppercase text-(--text) transition hover:bg-white"
+              className="inline-flex items-center justify-center rounded-[999px] border border-hairline bg-[rgba(255,255,255,.72)] px-4 py-2 text-[10px] font-black tracking-[0.12em] uppercase text-ink transition hover:bg-white"
             >
               Ir al sitio
             </Link>

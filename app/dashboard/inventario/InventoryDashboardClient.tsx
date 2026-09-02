@@ -11,7 +11,7 @@ import {
   useState,
 } from "react";
 
-import { Button, SelectField, TextField } from "@/core/design-system";
+import { Button, DashboardModal, Drawer, SelectField, TextField } from "@/core/design-system";
 import { FormErrorBag } from "@/core/design-system/feedback/FormErrorBag";
 import {
   toFormErrorBag,
@@ -357,30 +357,7 @@ function ModalShell({
   panelClassName,
   children,
 }: ModalShellProps) {
-  if (!open) return null;
-
-  return (
-    <div className="dashboard-modal-layer" role="dialog" aria-modal="true" aria-label={title}>
-      <button
-        type="button"
-        className="dashboard-modal-backdrop"
-        onClick={onClose}
-        aria-label="Cerrar modal"
-      />
-      <article className={["dashboard-modal-panel", panelClassName ?? ""].filter(Boolean).join(" ")}>
-        <header className="dashboard-modal-header">
-          <div>
-            {subtitle ? <p className="dashboard-modal-subtitle">{subtitle}</p> : null}
-            <h3 className="dashboard-modal-title">{title}</h3>
-          </div>
-          <button type="button" className="dashboard-modal-close" onClick={onClose}>
-            Cerrar
-          </button>
-        </header>
-        <div className="dashboard-modal-content">{children}</div>
-      </article>
-    </div>
-  );
+  return <DashboardModal open={open} title={title} subtitle={subtitle} onClose={onClose} className={panelClassName}>{children}</DashboardModal>;
 }
 
 function KpiCard({ label, value, note, tone = "default" }: KpiCardProps) {
@@ -398,7 +375,7 @@ function KpiCard({ label, value, note, tone = "default" }: KpiCardProps) {
       <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[rgba(8,10,13,.56)]">
         {label}
       </p>
-      <p className="mt-1 text-[22px] font-black leading-none text-(--text)">{value}</p>
+      <p className="mt-1 text-[22px] font-black leading-none text-ink">{value}</p>
       <p className="mt-1 text-[11px] text-[rgba(8,10,13,.58)]">{note}</p>
     </article>
   );
@@ -440,6 +417,7 @@ export function InventoryDashboardClient(props: InventoryDashboardClientProps) {
   const [modalErrorBag, setModalErrorBag] = useState<FormErrorBagState | null>(null);
   const [drawerErrorBag, setDrawerErrorBag] = useState<FormErrorBagState | null>(null);
   const [pendingActionKey, setPendingActionKey] = useState<string | null>(null);
+  const [referenceNow] = useState(() => Date.now());
 
   const presetById = useMemo(
     () => new Map(GLOBAL_STOCK_PRESETS.map((preset) => [preset.id, preset])),
@@ -617,7 +595,7 @@ export function InventoryDashboardClient(props: InventoryDashboardClientProps) {
   const movementCounters = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const weekStart = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    const weekStart = referenceNow - 7 * 24 * 60 * 60 * 1000;
 
     let todayCount = 0;
     let weekCount = 0;
@@ -629,7 +607,7 @@ export function InventoryDashboardClient(props: InventoryDashboardClientProps) {
     }
 
     return { todayCount, weekCount };
-  }, [sortedMovements]);
+  }, [referenceNow, sortedMovements]);
 
   const typeFilterOptions = useMemo(
     () => [
@@ -744,19 +722,6 @@ export function InventoryDashboardClient(props: InventoryDashboardClientProps) {
   const modalBusy = pendingActionKey === "modal:create";
 
   useEffect(() => {
-    if (!selectedRow) {
-      setDrawerQuantity("");
-      setDrawerReason("");
-      setDrawerErrorBag(null);
-      return;
-    }
-
-    setDrawerQuantity(String(selectedRow.item.quantity));
-    setDrawerReason("");
-    setDrawerErrorBag(null);
-  }, [selectedRow]);
-
-  useEffect(() => {
     if (!overlayOpen) return;
 
     const originalOverflow = document.body.style.overflow;
@@ -825,6 +790,8 @@ export function InventoryDashboardClient(props: InventoryDashboardClientProps) {
   const openRowDrawer = (row: InventoryRow, nextTab: DrawerTab = "overview") => {
     setSelectedItemId(row.item.id);
     setDrawerTab(nextTab);
+    setDrawerQuantity(String(row.item.quantity));
+    setDrawerReason("");
     setDrawerErrorBag(null);
   };
 
@@ -966,7 +933,7 @@ export function InventoryDashboardClient(props: InventoryDashboardClientProps) {
               <div className="min-w-0 flex-1">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="truncate text-[12px] font-black text-(--text)">{summary.productName}</p>
+                    <p className="truncate text-[12px] font-black text-ink">{summary.productName}</p>
                     <p className="truncate text-[11px] text-[rgba(8,10,13,.58)]">
                       {summary.colorLabel} / {summary.grammageLabel} / {summary.fitLabel}
                     </p>
@@ -987,7 +954,7 @@ export function InventoryDashboardClient(props: InventoryDashboardClientProps) {
                   {summary.primaryRow ? (
                     <button
                       type="button"
-                      className="rounded-full border border-[rgba(18,47,92,.12)] bg-white/92 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.12em] text-(--text) transition hover:border-[rgba(5,122,168,.3)] hover:bg-[rgba(242,248,255,.96)]"
+                      className="rounded-full border border-[rgba(18,47,92,.12)] bg-white/92 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.12em] text-ink transition hover:border-[rgba(5,122,168,.3)] hover:bg-[rgba(242,248,255,.96)]"
                       onClick={() => openRowDrawer(summary.primaryRow!, "overview")}
                     >
                       Ver detalle
@@ -1029,7 +996,7 @@ export function InventoryDashboardClient(props: InventoryDashboardClientProps) {
               <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[rgba(8,10,13,.48)]">
                 {summary.typeLabel}
               </p>
-              <h3 className="mt-1 text-[15px] font-black leading-tight text-(--text)">
+              <h3 className="mt-1 text-[15px] font-black leading-tight text-ink">
                 {summary.productName}
               </h3>
               <p className="mt-1 text-[11px] text-[rgba(8,10,13,.62)]">
@@ -1039,7 +1006,7 @@ export function InventoryDashboardClient(props: InventoryDashboardClientProps) {
 
             <div className="shrink-0 sm:text-right">
               <StatusBadge status={summary.status} />
-              <p className="mt-2 text-[26px] font-black leading-none text-(--text)">
+              <p className="mt-2 text-[26px] font-black leading-none text-ink">
                 {summary.totalQuantity}
               </p>
               <p className="mt-1 text-[10px] uppercase tracking-[0.08em] text-[rgba(8,10,13,.48)]">
@@ -1081,7 +1048,7 @@ export function InventoryDashboardClient(props: InventoryDashboardClientProps) {
             {summary.primaryRow ? (
               <button
                 type="button"
-                className="rounded-full border border-[rgba(18,47,92,.12)] bg-white px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.12em] text-(--text) transition hover:border-[rgba(5,122,168,.3)] hover:bg-[rgba(242,248,255,.96)]"
+                className="rounded-full border border-[rgba(18,47,92,.12)] bg-white px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.12em] text-ink transition hover:border-[rgba(5,122,168,.3)] hover:bg-[rgba(242,248,255,.96)]"
                 onClick={() => openRowDrawer(summary.primaryRow!, "overview")}
               >
                 Ver detalle
@@ -1106,14 +1073,14 @@ export function InventoryDashboardClient(props: InventoryDashboardClientProps) {
   );
 
   return (
-    <main className="dashboard-modern-shell w-full px-4 py-5 sm:px-6 lg:px-8 xl:px-10">
+    <main className="rounded-md border border-hairline bg-soft-cloud/90 w-full px-4 py-5 sm:px-6 lg:px-8 xl:px-10">
       <section className="rounded-[24px] border border-[rgba(18,47,92,.12)] bg-[linear-gradient(180deg,rgba(255,255,255,.9),rgba(249,251,255,.78))] px-4 py-4 shadow-[0_18px_42px_rgba(18,47,92,.06)] sm:px-5">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div className="min-w-0">
             <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[rgba(8,10,13,.46)]">
               Dashboard / Inventario / Catalogo stock
             </p>
-            <h1 className="mt-2 text-[26px] font-black tracking-[-0.03em] text-(--text) sm:text-[32px]">
+            <h1 className="mt-2 text-[26px] font-black tracking-[-0.03em] text-ink sm:text-[32px]">
               Inventario Operacion
             </h1>
             <p className="mt-1 max-w-[740px] text-[13px] text-[rgba(8,10,13,.62)]">
@@ -1127,7 +1094,7 @@ export function InventoryDashboardClient(props: InventoryDashboardClientProps) {
               size="sm"
               shadow="none"
               caps={false}
-              className="h-[38px] rounded-full border border-[rgba(18,47,92,.12)] bg-white/88 px-4 text-[12px] font-semibold text-(--text)"
+              className="h-[38px] rounded-full border border-[rgba(18,47,92,.12)] bg-white/88 px-4 text-[12px] font-semibold text-ink"
               onClick={() => setModal("all-movements")}
             >
               Ver movimientos
@@ -1226,7 +1193,7 @@ export function InventoryDashboardClient(props: InventoryDashboardClientProps) {
                         type="button"
                         className={`rounded-full border px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.12em] transition ${
                           active
-                            ? "border-[rgba(8,10,13,.18)] bg-(--saut-black) text-white"
+                            ? "border-[rgba(8,10,13,.18)] bg-ink text-white"
                             : "border-[rgba(18,47,92,.12)] bg-white/88 text-[rgba(8,10,13,.62)] hover:bg-[rgba(8,10,13,.04)]"
                         }`}
                         onClick={() => setFilterStatus(option.value as InventoryStatus | "all")}
@@ -1335,7 +1302,7 @@ export function InventoryDashboardClient(props: InventoryDashboardClientProps) {
           <section className="flex min-h-0 flex-1 flex-col rounded-[24px] border border-[rgba(18,47,92,.12)] bg-[rgba(255,255,255,.82)] p-3.5 shadow-[0_18px_42px_rgba(18,47,92,.05)]">
             <div className="flex items-center justify-between gap-2">
               <div>
-                <h2 className="text-[12px] font-black uppercase tracking-[0.14em] text-(--text)">Advertencias</h2>
+                <h2 className="text-[12px] font-black uppercase tracking-[0.14em] text-ink">Advertencias</h2>
                 <p className="mt-1 text-[11px] text-[rgba(8,10,13,.58)]">0 stock y bajo stock en un solo panel.</p>
               </div>
               <p className="text-[11px] font-semibold text-[rgba(8,10,13,.54)]">
@@ -1391,7 +1358,7 @@ export function InventoryDashboardClient(props: InventoryDashboardClientProps) {
 
       <div className="mt-4 grid gap-3 xl:hidden">
         <details className="overflow-hidden rounded-[20px] border border-[rgba(18,47,92,.12)] bg-[rgba(255,255,255,.84)] shadow-[0_12px_28px_rgba(18,47,92,.05)]">
-          <summary className="cursor-pointer list-none px-4 py-3 text-[12px] font-black uppercase tracking-[0.14em] text-(--text)">
+          <summary className="cursor-pointer list-none px-4 py-3 text-[12px] font-black uppercase tracking-[0.14em] text-ink">
             Advertencias ({outWarnings.length + lowWarnings.length})
           </summary>
           <div className="border-t border-[rgba(18,47,92,.08)] px-3 pb-3 pt-3">
@@ -1442,7 +1409,7 @@ export function InventoryDashboardClient(props: InventoryDashboardClientProps) {
         subtitle="Carga varias prendas en una sola operacion"
         open={modal === "create-entry"}
         onClose={closeModal}
-        panelClassName="dashboard-modal-panel--wide"
+        panelClassName="max-w-4xl"
       >
         <form onSubmit={handleCreateInventoryEntryAction} className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,.85fr)]">
           <div className="space-y-3">
@@ -1451,7 +1418,7 @@ export function InventoryDashboardClient(props: InventoryDashboardClientProps) {
             <section className="rounded-[18px] border border-[rgba(18,47,92,.10)] bg-white/90 p-3">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <h3 className="text-[11px] font-black uppercase tracking-[0.14em] text-(--text)">
+                  <h3 className="text-[11px] font-black uppercase tracking-[0.14em] text-ink">
                     Captura
                   </h3>
                   <p className="mt-1 text-[11px] text-[rgba(8,10,13,.58)]">
@@ -1462,7 +1429,7 @@ export function InventoryDashboardClient(props: InventoryDashboardClientProps) {
                   <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[rgba(8,10,13,.48)]">
                     Lineas
                   </p>
-                  <p className="mt-1 text-[18px] font-black text-(--text)">{drafts.length}</p>
+                  <p className="mt-1 text-[18px] font-black text-ink">{drafts.length}</p>
                 </div>
               </div>
 
@@ -1498,7 +1465,7 @@ export function InventoryDashboardClient(props: InventoryDashboardClientProps) {
                           <div className="min-w-0 flex-1">
                             <div className="flex items-start justify-between gap-2">
                               <div className="min-w-0">
-                                <p className="truncate text-[13px] font-black text-(--text)">
+                                <p className="truncate text-[13px] font-black text-ink">
                                   {preset.product}
                                 </p>
                                 <p className="mt-1 text-[11px] text-[rgba(8,10,13,.58)]">
@@ -1611,7 +1578,7 @@ export function InventoryDashboardClient(props: InventoryDashboardClientProps) {
                         <div className="min-w-0 flex-1">
                           <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0">
-                              <p className="truncate text-[12px] font-black text-(--text)">
+                              <p className="truncate text-[12px] font-black text-ink">
                                 {summary.productName}
                               </p>
                               <p className="mt-1 text-[11px] text-[rgba(8,10,13,.58)]">
@@ -1634,7 +1601,7 @@ export function InventoryDashboardClient(props: InventoryDashboardClientProps) {
                           <div className="mt-2 flex justify-end">
                             <button
                               type="button"
-                              className="rounded-full border border-[rgba(18,47,92,.12)] bg-white px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.12em] text-(--text) transition hover:border-[rgba(5,122,168,.3)] hover:bg-[rgba(242,248,255,.96)]"
+                              className="rounded-full border border-[rgba(18,47,92,.12)] bg-white px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.12em] text-ink transition hover:border-[rgba(5,122,168,.3)] hover:bg-[rgba(242,248,255,.96)]"
                               onClick={() =>
                                 appendDraft(
                                   summary.preset.id,
@@ -1661,26 +1628,26 @@ export function InventoryDashboardClient(props: InventoryDashboardClientProps) {
         subtitle={`${totalMovements} movimientos cargados`}
         open={modal === "all-movements"}
         onClose={closeModal}
-        panelClassName="dashboard-modal-panel--wide"
+        panelClassName="max-w-4xl"
       >
         <div className="grid gap-3 md:grid-cols-3">
           <div className="rounded-[14px] border border-[rgba(18,47,92,.10)] bg-white/88 px-3 py-3">
             <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[rgba(8,10,13,.48)]">
               Hoy
             </p>
-            <p className="mt-1 text-[18px] font-black text-(--text)">{movementCounters.todayCount}</p>
+            <p className="mt-1 text-[18px] font-black text-ink">{movementCounters.todayCount}</p>
           </div>
           <div className="rounded-[14px] border border-[rgba(18,47,92,.10)] bg-white/88 px-3 py-3">
             <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[rgba(8,10,13,.48)]">
               Ultimos 7 dias
             </p>
-            <p className="mt-1 text-[18px] font-black text-(--text)">{movementCounters.weekCount}</p>
+            <p className="mt-1 text-[18px] font-black text-ink">{movementCounters.weekCount}</p>
           </div>
           <div className="rounded-[14px] border border-[rgba(18,47,92,.10)] bg-white/88 px-3 py-3">
             <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[rgba(8,10,13,.48)]">
               Total
             </p>
-            <p className="mt-1 text-[18px] font-black text-(--text)">{totalMovements}</p>
+            <p className="mt-1 text-[18px] font-black text-ink">{totalMovements}</p>
           </div>
         </div>
 
@@ -1706,7 +1673,7 @@ export function InventoryDashboardClient(props: InventoryDashboardClientProps) {
                   </p>
                 </div>
 
-                <p className="mt-1 text-[12px] font-semibold text-(--text)">
+                <p className="mt-1 text-[12px] font-semibold text-ink">
                   {row ? itemLabel(row.item, row.preset) : "Prenda no disponible"}
                 </p>
 
@@ -1721,21 +1688,16 @@ export function InventoryDashboardClient(props: InventoryDashboardClientProps) {
         </div>
       </ModalShell>
       {selectedRow ? (
-        <div className="fixed inset-0 z-[68]" aria-hidden={false}>
-          <button
-            type="button"
-            className="absolute inset-0 bg-[rgba(8,10,13,.46)] backdrop-blur-[2px]"
-            onClick={closeDrawer}
-            aria-label="Cerrar panel de detalle"
-          />
-
-          <aside
-            id="inventory-drawer"
-            className="absolute inset-0 flex flex-col bg-[rgba(249,251,255,.98)] sm:inset-y-4 sm:right-4 sm:left-auto sm:w-[460px] sm:rounded-[26px] sm:border sm:border-[rgba(18,47,92,.14)] sm:shadow-[0_24px_60px_rgba(8,10,13,.22)]"
-            role="dialog"
-            aria-modal="true"
-            aria-label={`Detalle de prenda ${selectedRow.productName}`}
-          >
+        <Drawer
+          open
+          onClose={closeDrawer}
+          title={`Detalle de prenda ${selectedRow.productName}`}
+          side="right"
+          size="lg"
+          header={null}
+          className="bg-[rgba(249,251,255,.98)] sm:my-4 sm:mr-4 sm:w-[460px] sm:rounded-[26px] sm:border sm:border-[rgba(18,47,92,.14)] sm:shadow-[0_24px_60px_rgba(8,10,13,.22)]"
+          contentClassName="p-0"
+        >
             <header className="border-b border-[rgba(18,47,92,.08)] px-4 py-4 sm:px-5">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex min-w-0 items-start gap-3">
@@ -1757,7 +1719,7 @@ export function InventoryDashboardClient(props: InventoryDashboardClientProps) {
                     <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[rgba(8,10,13,.46)]">
                       Detalle de prenda
                     </p>
-                    <h2 className="mt-2 text-[20px] font-black leading-tight text-(--text)">
+                    <h2 className="mt-2 text-[20px] font-black leading-tight text-ink">
                       {selectedRow.productName}
                     </h2>
                     <p className="mt-1 text-[12px] text-[rgba(8,10,13,.58)]">
@@ -1792,7 +1754,7 @@ export function InventoryDashboardClient(props: InventoryDashboardClientProps) {
                   <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[rgba(8,10,13,.48)]">
                     Stock actual
                   </p>
-                  <p className="mt-1 text-[22px] font-black leading-none text-(--text)">
+                  <p className="mt-1 text-[22px] font-black leading-none text-ink">
                     {selectedRow.item.quantity}
                   </p>
                 </div>
@@ -1800,7 +1762,7 @@ export function InventoryDashboardClient(props: InventoryDashboardClientProps) {
                   <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[rgba(8,10,13,.48)]">
                     Talla
                   </p>
-                  <p className="mt-1 text-[18px] font-black leading-none text-(--text)">
+                  <p className="mt-1 text-[18px] font-black leading-none text-ink">
                     {selectedRow.sizeLabel}
                   </p>
                 </div>
@@ -1808,7 +1770,7 @@ export function InventoryDashboardClient(props: InventoryDashboardClientProps) {
                   <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[rgba(8,10,13,.48)]">
                     Ultimo mov.
                   </p>
-                  <p className="mt-1 text-[12px] font-black text-(--text)">
+                  <p className="mt-1 text-[12px] font-black text-ink">
                     {selectedRow.lastMovement
                       ? movementTypeLabel(selectedRow.lastMovement.movement_type)
                       : "Sin movimientos"}
@@ -1826,7 +1788,7 @@ export function InventoryDashboardClient(props: InventoryDashboardClientProps) {
                   type="button"
                   className={`rounded-full px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.12em] transition ${
                     drawerTab === "overview"
-                      ? "bg-(--saut-black) text-white"
+                      ? "bg-ink text-white"
                       : "text-[rgba(8,10,13,.58)] hover:bg-white"
                   }`}
                   onClick={() => setDrawerTab("overview")}
@@ -1837,7 +1799,7 @@ export function InventoryDashboardClient(props: InventoryDashboardClientProps) {
                   type="button"
                   className={`rounded-full px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.12em] transition ${
                     drawerTab === "history"
-                      ? "bg-(--saut-black) text-white"
+                      ? "bg-ink text-white"
                       : "text-[rgba(8,10,13,.58)] hover:bg-white"
                   }`}
                   onClick={() => setDrawerTab("history")}
@@ -1849,7 +1811,7 @@ export function InventoryDashboardClient(props: InventoryDashboardClientProps) {
               {drawerTab === "overview" ? (
                 <div className="mt-4 space-y-4">
                   <section className="rounded-[18px] border border-[rgba(18,47,92,.10)] bg-white/90 p-3">
-                    <h3 className="text-[11px] font-black uppercase tracking-[0.14em] text-(--text)">
+                    <h3 className="text-[11px] font-black uppercase tracking-[0.14em] text-ink">
                       Datos de la prenda
                     </h3>
                     <div className="mt-3 grid gap-2 sm:grid-cols-2">
@@ -1857,31 +1819,31 @@ export function InventoryDashboardClient(props: InventoryDashboardClientProps) {
                         <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[rgba(8,10,13,.48)]">
                           Tipo
                         </p>
-                        <p className="mt-1 text-[12px] font-semibold text-(--text)">{selectedRow.typeLabel}</p>
+                        <p className="mt-1 text-[12px] font-semibold text-ink">{selectedRow.typeLabel}</p>
                       </div>
                       <div className="rounded-[12px] bg-[rgba(246,249,255,.94)] px-3 py-2">
                         <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[rgba(8,10,13,.48)]">
                           Fit
                         </p>
-                        <p className="mt-1 text-[12px] font-semibold text-(--text)">{selectedRow.fitLabel}</p>
+                        <p className="mt-1 text-[12px] font-semibold text-ink">{selectedRow.fitLabel}</p>
                       </div>
                       <div className="rounded-[12px] bg-[rgba(246,249,255,.94)] px-3 py-2">
                         <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[rgba(8,10,13,.48)]">
                           Color
                         </p>
-                        <p className="mt-1 text-[12px] font-semibold text-(--text)">{selectedRow.item.color}</p>
+                        <p className="mt-1 text-[12px] font-semibold text-ink">{selectedRow.item.color}</p>
                       </div>
                       <div className="rounded-[12px] bg-[rgba(246,249,255,.94)] px-3 py-2">
                         <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[rgba(8,10,13,.48)]">
                           Gramaje
                         </p>
-                        <p className="mt-1 text-[12px] font-semibold text-(--text)">{selectedRow.item.grammage_g}g</p>
+                        <p className="mt-1 text-[12px] font-semibold text-ink">{selectedRow.item.grammage_g}g</p>
                       </div>
                       <div className="rounded-[12px] bg-[rgba(246,249,255,.94)] px-3 py-2">
                         <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[rgba(8,10,13,.48)]">
                           Creado
                         </p>
-                        <p className="mt-1 text-[12px] font-semibold text-(--text)">
+                        <p className="mt-1 text-[12px] font-semibold text-ink">
                           {formatDateOnly(selectedRow.item.created_at)}
                         </p>
                       </div>
@@ -1889,7 +1851,7 @@ export function InventoryDashboardClient(props: InventoryDashboardClientProps) {
                         <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[rgba(8,10,13,.48)]">
                           Actualizado
                         </p>
-                        <p className="mt-1 text-[12px] font-semibold text-(--text)">
+                        <p className="mt-1 text-[12px] font-semibold text-ink">
                           {formatDateOnly(selectedRow.item.updated_at)}
                         </p>
                       </div>
@@ -1899,7 +1861,7 @@ export function InventoryDashboardClient(props: InventoryDashboardClientProps) {
                   {selectedSummary ? (
                     <section className="rounded-[18px] border border-[rgba(18,47,92,.10)] bg-white/90 p-3">
                       <div className="flex items-center justify-between gap-2">
-                        <h3 className="text-[11px] font-black uppercase tracking-[0.14em] text-(--text)">
+                        <h3 className="text-[11px] font-black uppercase tracking-[0.14em] text-ink">
                           Tallas de la prenda
                         </h3>
                         <span className="rounded-full border border-[rgba(18,47,92,.12)] bg-[rgba(247,250,255,.9)] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.12em] text-[rgba(8,10,13,.56)]">
@@ -1939,7 +1901,7 @@ export function InventoryDashboardClient(props: InventoryDashboardClientProps) {
                   ) : null}
 
                   <section className="rounded-[18px] border border-[rgba(18,47,92,.10)] bg-white/90 p-3">
-                    <h3 className="text-[11px] font-black uppercase tracking-[0.14em] text-(--text)">
+                    <h3 className="text-[11px] font-black uppercase tracking-[0.14em] text-ink">
                       Set exacto
                     </h3>
                     <p className="mt-1 text-[11px] text-[rgba(8,10,13,.58)]">
@@ -1986,7 +1948,7 @@ export function InventoryDashboardClient(props: InventoryDashboardClientProps) {
                   </section>
 
                   <section className="rounded-[18px] border border-[rgba(18,47,92,.10)] bg-white/90 p-3">
-                    <h3 className="text-[11px] font-black uppercase tracking-[0.14em] text-(--text)">
+                    <h3 className="text-[11px] font-black uppercase tracking-[0.14em] text-ink">
                       Notas operativas
                     </h3>
                     {drawerNotes.length > 0 ? (
@@ -2004,7 +1966,7 @@ export function InventoryDashboardClient(props: InventoryDashboardClientProps) {
                                 {formatDateTime(movement.created_at)}
                               </p>
                             </div>
-                            <p className="mt-1 text-[12px] text-(--text)">
+                            <p className="mt-1 text-[12px] text-ink">
                               {movement.reason || movement.source_ref || "Sin nota adicional"}
                             </p>
                           </article>
@@ -2020,7 +1982,7 @@ export function InventoryDashboardClient(props: InventoryDashboardClientProps) {
               ) : (
                 <section className="mt-4 rounded-[18px] border border-[rgba(18,47,92,.10)] bg-white/90 p-3">
                   <div className="flex items-center justify-between gap-2">
-                    <h3 className="text-[11px] font-black uppercase tracking-[0.14em] text-(--text)">
+                    <h3 className="text-[11px] font-black uppercase tracking-[0.14em] text-ink">
                       Historial de la prenda
                     </h3>
                     <span className="rounded-full border border-[rgba(18,47,92,.12)] bg-[rgba(247,250,255,.9)] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.12em] text-[rgba(8,10,13,.56)]">
@@ -2051,7 +2013,7 @@ export function InventoryDashboardClient(props: InventoryDashboardClientProps) {
                           </div>
 
                           {movement.reason ? (
-                            <p className="mt-2 text-[12px] text-(--text)">{movement.reason}</p>
+                            <p className="mt-2 text-[12px] text-ink">{movement.reason}</p>
                           ) : null}
                         </article>
                       ))
@@ -2064,8 +2026,7 @@ export function InventoryDashboardClient(props: InventoryDashboardClientProps) {
                 </section>
               )}
             </div>
-          </aside>
-        </div>
+        </Drawer>
       ) : null}
     </main>
   );

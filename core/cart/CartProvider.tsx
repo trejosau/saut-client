@@ -92,8 +92,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     const [hydrated, setHydrated] = React.useState(false);
 
     React.useEffect(() => {
-        setItems(readStorage());
-        setHydrated(true);
+        let cancelled = false;
+        queueMicrotask(() => {
+            if (cancelled) return;
+            setItems(readStorage());
+            setHydrated(true);
+        });
+        return () => { cancelled = true; };
     }, []);
 
     React.useEffect(() => {

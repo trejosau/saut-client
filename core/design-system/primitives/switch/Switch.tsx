@@ -10,9 +10,9 @@ export type SwitchProps = Omit<
     React.InputHTMLAttributes<HTMLInputElement>,
     "type" | "size"
 > & {
-    label?: string;
-    hint?: string;
-    error?: string;
+    label?: React.ReactNode;
+    hint?: React.ReactNode;
+    error?: React.ReactNode;
 
     size?: SwitchSize;
 
@@ -36,7 +36,7 @@ const sizes: Record<
         track: string;
         knob: string;
         knobLeft: string;
-        knobMove: string; // ✅ mueve el knob via selector en el track
+        knobMove: string; // âœ… mueve el knob via selector en el track
         gap: string;
     }
 > = {
@@ -88,8 +88,8 @@ export function Switch({
             : "";
 
     const style: SwitchCssVars = {
-        "--sw-accent": accentColor ?? "var(--saut-yellow)",
-        "--sw-ring": ringColor ?? "rgba(255,217,66,.30)",
+        "--sw-accent": accentColor ?? "var(--color-primary)",
+        "--sw-ring": ringColor ?? "color-mix(in srgb, var(--color-primary) 30%, transparent)",
     };
 
     return (
@@ -120,12 +120,12 @@ export function Switch({
                     "shadow-[0_10px_18px_rgba(8,10,13,.08)]",
                     "transition-[box-shadow,border-color,background-color,filter] duration-200 ease-out",
                     "hover:shadow-[0_12px_20px_rgba(8,10,13,.09)]",
-                    "border-[var(--border)]",
+                    "border-hairline",
                     "peer-focus-visible:shadow-[0_0_0_3px_var(--sw-ring),0_12px_20px_rgba(8,10,13,.09)]",
                     "peer-checked:bg-[var(--sw-accent)] peer-checked:border-[var(--sw-accent)]",
                     error ? "border-[rgba(219,38,75,.55)]" : "",
                     sizes[size].track,
-                    // ✅ mueve el knob cuando está checked
+                    // âœ… mueve el knob cuando estÃ¡ checked
                     sizes[size].knobMove
                 )}
             >
@@ -136,7 +136,7 @@ export function Switch({
                         sizes[size].knobLeft,
                         "rounded-full bg-white",
                         "shadow-[0_8px_14px_rgba(8,10,13,.10)]",
-                        // ✅ animación suave
+                        // âœ… animaciÃ³n suave
                         "transform-gpu translate-x-0 will-change-transform",
                         "transition-transform duration-200 ease-out",
                         sizes[size].knob
@@ -145,9 +145,9 @@ export function Switch({
           </span>
         </span>
 
-                {(label || hint || error) ? (
+                {(label !== undefined || hint !== undefined || error !== undefined) ? (
                     <span className="min-w-0">
-            {label ? (
+            {label !== undefined ? (
                 <span className="block text-[12px] font-black tracking-[0.10em]">
                 {label}
               </span>
@@ -158,7 +158,7 @@ export function Switch({
                 {error}
               </span>
                         ) : hint ? (
-                            <span className="mt-1 block text-[12px] font-extrabold text-[var(--muted)]">
+                            <span className="mt-1 block text-[12px] font-extrabold text-mute">
                 {hint}
               </span>
                         ) : null}

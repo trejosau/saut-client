@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
 
+import { Button, SelectField, TextField } from "@/core/design-system";
 import { FormErrorBag } from "@/core/design-system/feedback/FormErrorBag";
 import { toFormErrorBag, type FormErrorBag as FormErrorBagState } from "@/core/design-system/feedback/form-errors";
 import { useToast } from "@/core/design-system/feedback/ToastHost";
@@ -146,8 +147,8 @@ export function EnviosDashboardClient({
 
   return (
     <main className="w-full px-4 py-8 sm:px-8 lg:px-14">
-      <section className="rounded-[22px] border border-(--border) bg-[rgba(255,255,255,.38)] p-5 sm:p-6">
-        <h1 className="text-[24px] sm:text-[30px] font-black uppercase tracking-[0.04em] text-(--text)">
+      <section className="rounded-[22px] border border-hairline bg-[rgba(255,255,255,.38)] p-5 sm:p-6">
+        <h1 className="text-[24px] sm:text-[30px] font-black uppercase tracking-[0.04em] text-ink">
           Envios Nacional y Local
         </h1>
         <p className="mt-2 text-[12px] text-[rgba(8,10,13,.7)]">
@@ -156,8 +157,8 @@ export function EnviosDashboardClient({
       </section>
 
       <section className="mt-6 grid gap-4 lg:grid-cols-2">
-        <article className="rounded-[18px] border border-(--border) bg-[rgba(255,255,255,.45)] p-4">
-          <p className="text-[11px] font-black uppercase tracking-[0.12em] text-(--text)">
+        <article className="rounded-[18px] border border-hairline bg-[rgba(255,255,255,.45)] p-4">
+          <p className="text-[11px] font-black uppercase tracking-[0.12em] text-ink">
             Nacional: crear shipment y tracking
           </p>
           <form
@@ -170,44 +171,17 @@ export function EnviosDashboardClient({
             className="mt-3 space-y-2"
           >
             <FormErrorBag bag={errorBagByForm["create-national-shipment"] ?? null} />
-            <input
-              name="order_id"
-              required
-              placeholder="order_id nacional"
-              className="h-10 w-full rounded-[10px] border border-(--border) bg-white/85 px-3 text-[12px] font-mono"
-            />
-            <select
-              name="printing_format"
-              defaultValue="standard"
-              className="h-10 w-full rounded-[10px] border border-(--border) bg-white/85 px-3 text-[12px]"
-            >
-              <option value="standard">standard</option>
-              <option value="thermal">thermal</option>
-            </select>
-            <input
-              name="package_type"
-              placeholder="package_type (opcional)"
-              className="h-10 w-full rounded-[10px] border border-(--border) bg-white/85 px-3 text-[12px]"
-            />
-            <input
-              name="consignment_note"
-              placeholder="consignment_note (opcional)"
-              className="h-10 w-full rounded-[10px] border border-(--border) bg-white/85 px-3 text-[12px]"
-            />
-            <input
-              name="declared_value"
-              type="number"
-              min={0}
-              step="0.01"
-              placeholder="declared_value (opcional)"
-              className="h-10 w-full rounded-[10px] border border-(--border) bg-white/85 px-3 text-[12px]"
-            />
-            <button
+            <TextField name="order_id" label="Order ID" labelClassName="sr-only" required placeholder="order_id nacional" size="sm" inputClassName="font-mono text-[12px]" />
+            <SelectField name="printing_format" label="Formato de impresión" labelClassName="sr-only" defaultValue="standard" size="sm" options={[{ value: "standard", label: "standard" }, { value: "thermal", label: "thermal" }]} />
+            <TextField name="package_type" label="Tipo de paquete" labelClassName="sr-only" placeholder="package_type (opcional)" size="sm" />
+            <TextField name="consignment_note" label="Nota de consignación" labelClassName="sr-only" placeholder="consignment_note (opcional)" size="sm" />
+            <TextField name="declared_value" label="Valor declarado" labelClassName="sr-only" type="number" min={0} step="0.01" placeholder="declared_value (opcional)" size="sm" />
+            <Button
               type="submit"
-              className="h-10 w-full rounded-[10px] bg-(--saut-blue) px-3 text-[10px] font-black uppercase tracking-[0.12em] text-white"
+              size="sm" fullWidth variant="blue" shadow="none" className="text-[10px]"
             >
               Crear envio nacional
-            </button>
+            </Button>
           </form>
 
           <form
@@ -220,87 +194,64 @@ export function EnviosDashboardClient({
             className="mt-3 space-y-2"
           >
             <FormErrorBag bag={errorBagByForm["refresh-national-tracking"] ?? null} />
-            <input
-              name="order_id"
-              required
-              placeholder="order_id para refrescar tracking"
-              className="h-10 w-full rounded-[10px] border border-(--border) bg-white/85 px-3 text-[12px] font-mono"
-            />
-            <button
+            <TextField name="order_id" label="Order ID" labelClassName="sr-only" required placeholder="order_id para refrescar tracking" size="sm" inputClassName="font-mono text-[12px]" />
+            <Button
               type="submit"
-              className="h-10 w-full rounded-[10px] border border-(--border) bg-white/85 px-3 text-[10px] font-black uppercase tracking-[0.12em]"
+              size="sm" fullWidth variant="outline" shadow="none" className="text-[10px]"
             >
               Refrescar tracking
-            </button>
+            </Button>
           </form>
         </article>
 
-        <article className="rounded-[18px] border border-(--border) bg-[rgba(255,255,255,.45)] p-4">
-          <p className="text-[11px] font-black uppercase tracking-[0.12em] text-(--text)">
+        <article className="rounded-[18px] border border-hairline bg-[rgba(255,255,255,.45)] p-4">
+          <p className="text-[11px] font-black uppercase tracking-[0.12em] text-ink">
             Local: ready, reparto, entrega/fallida
           </p>
           <form onSubmit={submitLocalStatusForm} className="mt-3 grid gap-2 sm:grid-cols-2">
             <FormErrorBag bag={errorBagByForm["update-local-status"] ?? null} className="sm:col-span-2" />
-            <input
-              name="order_id"
-              required
-              placeholder="order_id local"
-              className="h-10 rounded-[10px] border border-(--border) bg-white/85 px-3 text-[12px] font-mono sm:col-span-2"
-            />
-            <input
-              name="route_date"
-              type="date"
-              defaultValue={routeDate}
-              className="h-10 rounded-[10px] border border-(--border) bg-white/85 px-3 text-[12px] sm:col-span-2"
-            />
-            <button
+            <TextField name="order_id" label="Order ID" labelClassName="sr-only" required placeholder="order_id local" size="sm" wrapperClassName="sm:col-span-2" inputClassName="font-mono text-[12px]" />
+            <TextField name="route_date" label="Fecha de ruta" labelClassName="sr-only" type="date" defaultValue={routeDate} size="sm" wrapperClassName="sm:col-span-2" />
+            <Button
               type="submit"
               name="local_action"
               value="ready"
-              className="h-10 rounded-[10px] bg-[rgba(12,128,175,.14)] px-3 text-[10px] font-black uppercase tracking-[0.12em] text-(--saut-navy)"
+              size="sm" variant="blue" shadow="none" className="text-[10px]"
             >
               Marcar listo
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
               name="local_action"
               value="out_for_delivery"
-              className="h-10 rounded-[10px] bg-(--saut-yellow) px-3 text-[10px] font-black uppercase tracking-[0.12em]"
+              size="sm" variant="primary" shadow="none" className="text-[10px]"
             >
               En reparto
-            </button>
-            <input
-              name="photo_url"
-              placeholder="photo_url (opcional)"
-              className="h-10 rounded-[10px] border border-(--border) bg-white/85 px-3 text-[12px] sm:col-span-2"
-            />
-            <input
-              name="notes"
-              placeholder="notas (opcional)"
-              className="h-10 rounded-[10px] border border-(--border) bg-white/85 px-3 text-[12px] sm:col-span-2"
-            />
-            <button
+            </Button>
+            <TextField name="photo_url" label="Foto" labelClassName="sr-only" placeholder="photo_url (opcional)" size="sm" wrapperClassName="sm:col-span-2" />
+            <TextField name="notes" label="Notas" labelClassName="sr-only" placeholder="notas (opcional)" size="sm" wrapperClassName="sm:col-span-2" />
+            <Button
               type="submit"
               name="local_action"
               value="delivered"
-              className="h-10 rounded-[10px] bg-[rgba(22,130,80,.14)] px-3 text-[10px] font-black uppercase tracking-[0.12em] text-[rgb(20,100,66)]"
+              size="sm" variant="outline" shadow="none" className="text-[10px] border-[rgba(22,130,80,.3)] text-[rgb(20,100,66)]"
             >
               Entregado
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
               name="local_action"
               value="failed"
-              className="h-10 rounded-[10px] bg-[rgba(168,43,43,.14)] px-3 text-[10px] font-black uppercase tracking-[0.12em] text-[rgb(120,24,24)]"
+              size="sm" variant="danger" shadow="none" className="text-[10px]"
             >
               Fallida 1/1
-            </button>
+            </Button>
           </form>
         </article>
       </section>
 
-      <section className="mt-6 rounded-[18px] border border-(--border) bg-[rgba(255,255,255,.45)] p-4">
-        <p className="text-[11px] font-black uppercase tracking-[0.12em] text-(--text)">
+      <section className="mt-6 rounded-[18px] border border-hairline bg-[rgba(255,255,255,.45)] p-4">
+        <p className="text-[11px] font-black uppercase tracking-[0.12em] text-ink">
           Cambio direccion local (solo antes de en reparto)
         </p>
         <form
@@ -313,30 +264,30 @@ export function EnviosDashboardClient({
           className="mt-3 grid gap-2 md:grid-cols-3"
         >
           <FormErrorBag bag={errorBagByForm["update-local-address"] ?? null} className="md:col-span-3" />
-          <input name="order_id" required placeholder="order_id local" className="h-10 rounded-[10px] border border-(--border) bg-white/85 px-3 text-[12px] font-mono md:col-span-3" />
-          <input name="line1" required placeholder="line1" className="h-10 rounded-[10px] border border-(--border) bg-white/85 px-3 text-[12px] md:col-span-2" />
-          <input name="line2" placeholder="line2" className="h-10 rounded-[10px] border border-(--border) bg-white/85 px-3 text-[12px]" />
-          <input name="city" required placeholder="city" className="h-10 rounded-[10px] border border-(--border) bg-white/85 px-3 text-[12px]" />
-          <input name="state" required placeholder="state" className="h-10 rounded-[10px] border border-(--border) bg-white/85 px-3 text-[12px]" />
-          <input name="postal_code" required placeholder="postal_code" className="h-10 rounded-[10px] border border-(--border) bg-white/85 px-3 text-[12px]" />
-          <input name="country" defaultValue="MX" placeholder="country" className="h-10 rounded-[10px] border border-(--border) bg-white/85 px-3 text-[12px]" />
-          <input name="reference" placeholder="reference" className="h-10 rounded-[10px] border border-(--border) bg-white/85 px-3 text-[12px]" />
-          <input name="reason" placeholder="reason" className="h-10 rounded-[10px] border border-(--border) bg-white/85 px-3 text-[12px]" />
-          <button type="submit" className="h-10 rounded-[10px] border border-(--border) bg-white/90 px-3 text-[10px] font-black uppercase tracking-[0.12em] md:col-span-3">
+          <TextField name="order_id" label="Order ID" labelClassName="sr-only" required placeholder="order_id local" size="sm" wrapperClassName="md:col-span-3" inputClassName="font-mono text-[12px]" />
+          <TextField name="line1" label="Calle y número" labelClassName="sr-only" required placeholder="line1" size="sm" wrapperClassName="md:col-span-2" />
+          <TextField name="line2" label="Complemento" labelClassName="sr-only" placeholder="line2" size="sm" />
+          <TextField name="city" label="Ciudad" labelClassName="sr-only" required placeholder="city" size="sm" />
+          <TextField name="state" label="Estado" labelClassName="sr-only" required placeholder="state" size="sm" />
+          <TextField name="postal_code" label="Código postal" labelClassName="sr-only" required placeholder="postal_code" size="sm" />
+          <TextField name="country" label="País" labelClassName="sr-only" defaultValue="MX" placeholder="country" size="sm" />
+          <TextField name="reference" label="Referencia" labelClassName="sr-only" placeholder="reference" size="sm" />
+          <TextField name="reason" label="Motivo" labelClassName="sr-only" placeholder="reason" size="sm" />
+          <Button type="submit" size="sm" variant="outline" shadow="none" className="text-[10px] md:col-span-3">
             Actualizar direccion local
-          </button>
+          </Button>
         </form>
       </section>
 
       <section className="mt-6 grid gap-4 lg:grid-cols-2">
-        <article className="rounded-[18px] border border-(--border) bg-[rgba(255,255,255,.45)] p-4">
-          <p className="text-[12px] font-black uppercase tracking-[0.12em] text-(--text)">
+        <article className="rounded-[18px] border border-hairline bg-[rgba(255,255,255,.45)] p-4">
+          <p className="text-[12px] font-black uppercase tracking-[0.12em] text-ink">
             Pedidos nacionales recientes ({nationalOrders.total})
           </p>
           <div className="mt-3 overflow-x-auto">
             <table className="min-w-full text-left text-[11px]">
               <thead>
-                <tr className="border-b border-(--border)">
+                <tr className="border-b border-hairline">
                   <th className="px-2 py-2">Order ID</th>
                   <th className="px-2 py-2">Estado</th>
                   <th className="px-2 py-2">Tracking</th>
@@ -355,13 +306,13 @@ export function EnviosDashboardClient({
               </tbody>
             </table>
           </div>
-          <p className="mt-4 text-[12px] font-black uppercase tracking-[0.12em] text-(--text)">
+          <p className="mt-4 text-[12px] font-black uppercase tracking-[0.12em] text-ink">
             Shipments nacionales ({nationalShipments.total})
           </p>
           <div className="mt-2 overflow-x-auto">
             <table className="min-w-full text-left text-[11px]">
               <thead>
-                <tr className="border-b border-(--border)">
+                <tr className="border-b border-hairline">
                   <th className="px-2 py-2">Shipment ID</th>
                   <th className="px-2 py-2">Estado</th>
                   <th className="px-2 py-2">Tracking</th>
@@ -382,8 +333,8 @@ export function EnviosDashboardClient({
           </div>
         </article>
 
-        <article className="rounded-[18px] border border-(--border) bg-[rgba(255,255,255,.45)] p-4">
-          <p className="text-[12px] font-black uppercase tracking-[0.12em] text-(--text)">
+        <article className="rounded-[18px] border border-hairline bg-[rgba(255,255,255,.45)] p-4">
+          <p className="text-[12px] font-black uppercase tracking-[0.12em] text-ink">
             Ruta local del dia
           </p>
           <p className="mt-1 text-[11px] text-[rgba(8,10,13,.65)]">
@@ -392,7 +343,7 @@ export function EnviosDashboardClient({
           <div className="mt-2 overflow-x-auto">
             <table className="min-w-full text-left text-[11px]">
               <thead>
-                <tr className="border-b border-(--border)">
+                <tr className="border-b border-hairline">
                   <th className="px-2 py-2">Order ID</th>
                   <th className="px-2 py-2">Status</th>
                   <th className="px-2 py-2">Cliente</th>
@@ -412,17 +363,17 @@ export function EnviosDashboardClient({
             </table>
           </div>
           {route?.printable_text ? (
-            <pre className="mt-3 max-h-[220px] overflow-auto rounded-[10px] border border-(--border) bg-white/80 p-2 text-[10px] whitespace-pre-wrap">
+            <pre className="mt-3 max-h-[220px] overflow-auto rounded-[10px] border border-hairline bg-white/80 p-2 text-[10px] whitespace-pre-wrap">
               {route.printable_text}
             </pre>
           ) : null}
-          <p className="mt-3 text-[12px] font-black uppercase tracking-[0.12em] text-(--text)">
+          <p className="mt-3 text-[12px] font-black uppercase tracking-[0.12em] text-ink">
             Pedidos locales recientes ({localOrders.total})
           </p>
           <div className="mt-2 overflow-x-auto">
             <table className="min-w-full text-left text-[11px]">
               <thead>
-                <tr className="border-b border-(--border)">
+                <tr className="border-b border-hairline">
                   <th className="px-2 py-2">Order ID</th>
                   <th className="px-2 py-2">Estado</th>
                   <th className="px-2 py-2">Email</th>
@@ -439,13 +390,13 @@ export function EnviosDashboardClient({
               </tbody>
             </table>
           </div>
-          <p className="mt-4 text-[12px] font-black uppercase tracking-[0.12em] text-(--text)">
+          <p className="mt-4 text-[12px] font-black uppercase tracking-[0.12em] text-ink">
             Shipments locales ({localShipments.total})
           </p>
           <div className="mt-2 overflow-x-auto">
             <table className="min-w-full text-left text-[11px]">
               <thead>
-                <tr className="border-b border-(--border)">
+                <tr className="border-b border-hairline">
                   <th className="px-2 py-2">Shipment ID</th>
                   <th className="px-2 py-2">Estado</th>
                   <th className="px-2 py-2">Intentos</th>

@@ -61,7 +61,7 @@ export type RadioTilesProps = {
     tileClassName?: string;
     wrapperClassName?: string;
 
-    /** Para tiles MUY custom (prendas/diseños) */
+    /** Para tiles MUY custom (prendas/diseÃ±os) */
     renderOption?: (ctx: RadioTilesRenderCtx) => React.ReactNode;
 };
 
@@ -191,21 +191,21 @@ export function RadioTiles({
 
     const baseVars: RadioTilesCssVars = {
         "--rt-bg": bgColor ?? "rgba(255,255,255,.18)",
-        "--rt-border": borderColor ?? "rgba(0,0,0,.14)",
-        "--rt-focus-border": borderFocusColor ?? "rgba(255,217,66,.95)",
-        "--rt-ring": ringColor ?? "rgba(255,217,66,.22)",
+        "--rt-border": borderColor ?? "var(--color-hairline)",
+        "--rt-focus-border": borderFocusColor ?? "var(--color-primary)",
+        "--rt-ring": ringColor ?? "color-mix(in srgb, var(--color-primary) 22%, transparent)",
     };
 
     const stateVars =
         autoState === "error"
             ? {
-                "--rt-focus-border": "rgba(219,38,75,.95)",
-                "--rt-ring": "rgba(219,38,75,.18)",
+                "--rt-focus-border": "var(--color-sale)",
+                "--rt-ring": "color-mix(in srgb, var(--color-sale) 20%, transparent)",
             }
             : autoState === "success"
                 ? {
-                    "--rt-focus-border": "rgba(5,122,168,.85)",
-                    "--rt-ring": "rgba(5,122,168,.16)",
+                    "--rt-focus-border": "var(--color-info)",
+                    "--rt-ring": "color-mix(in srgb, var(--color-info) 20%, transparent)",
                 }
                 : {};
 
@@ -234,8 +234,8 @@ export function RadioTiles({
                     const id = `${name}-${idx}`;
                     const checked = o.value === currentValue;
 
-                    const optAccent = o.accentHex ?? "rgba(255,217,66,.95)";
-                    const optRing = rgbaFromHex(o.accentHex, 0.22);
+                    const optAccent = o.accentHex ?? "var(--color-primary)";
+                    const optRing = o.accentHex ? rgbaFromHex(o.accentHex, 0.22) : "color-mix(in srgb, var(--color-primary) 22%, transparent)";
 
                     const optVars: RadioTilesCssVars = {
                         "--rt-opt-accent": optAccent,
@@ -264,7 +264,7 @@ export function RadioTiles({
                         // focus visible
                         "peer-focus-visible:border-[var(--rt-focus-border)]",
                         "peer-focus-visible:shadow-[0_0_0_3px_var(--rt-ring),0_22px_46px_rgba(8,10,13,.12)]",
-                        // selected (usa accent por opción)
+                        // selected (usa accent por opciÃ³n)
                         "peer-checked:border-[color:var(--rt-opt-accent)]",
                         "peer-checked:shadow-[0_0_0_3px_var(--rt-opt-ring),0_22px_46px_rgba(8,10,13,.12)]"
                     );

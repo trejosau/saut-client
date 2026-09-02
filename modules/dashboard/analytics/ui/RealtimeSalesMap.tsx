@@ -1,6 +1,9 @@
-﻿"use client";
+"use client";
 
 import * as React from "react";
+
+import { Badge, SelectField, TextField } from "@/core/design-system";
+import { requestJson } from "@/core/lib/api/fetcher";
 
 type Scope = "general" | "type" | "publication" | "collection" | "drop";
 
@@ -144,11 +147,7 @@ export function RealtimeSalesMap() {
 
     const run = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/analytics/map/pings?${query}`, {
-          cache: "no-store",
-        });
-        if (!response.ok) return;
-        const data = (await response.json()) as { items?: Ping[] };
+        const data = await requestJson<{ items?: Ping[] }>(`${API_BASE_URL}/analytics/map/pings?${query}`, { cache: "no-store" });
         if (!cancelled) {
           setPings((data.items ?? []).slice(0, 160));
         }
@@ -165,7 +164,6 @@ export function RealtimeSalesMap() {
 
   React.useEffect(() => {
     const ws = new WebSocket(`${WS_BASE_URL}?${query}`);
-    setConnected(false);
 
     ws.onopen = () => setConnected(true);
     ws.onclose = () => setConnected(false);
@@ -204,78 +202,34 @@ export function RealtimeSalesMap() {
   }, [pings]);
 
   return (
-    <section className="rounded-[20px] border border-(--border) bg-[rgba(255,255,255,.45)] p-4 sm:p-5">
+    <section className="rounded-[20px] border border-hairline bg-[rgba(255,255,255,.45)] p-4 sm:p-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-[14px] font-black uppercase tracking-[0.12em] text-(--text)">
+        <h2 className="text-[14px] font-black uppercase tracking-[0.12em] text-ink">
           Mapa 2D Reutilizable
         </h2>
-        <span
-          className={[
-            "rounded-[999px] border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.1em]",
-            connected
-              ? "border-[rgba(26,134,80,.34)] bg-[rgba(26,134,80,.14)] text-[rgb(19,110,64)]"
-              : "border-[rgba(160,48,48,.32)] bg-[rgba(160,48,48,.12)] text-[rgb(124,36,36)]",
-          ].join(" ")}
-        >
+        <Badge tone={connected ? "success" : "danger"}>
           {connected ? "Realtime conectado" : "Sin conexion"}
-        </span>
+        </Badge>
       </div>
 
       <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-        <label className="text-[10px] font-black uppercase tracking-[0.1em] text-(--text)">
-          Scope
-          <select
-            value={scope}
-            onChange={(event) => setScope(event.target.value as Scope)}
-            className="mt-1 h-9 w-full rounded-[10px] border border-(--border) bg-white px-2.5 text-[11px]"
-          >
-            <option value="general">General</option>
-            <option value="type">Tipo</option>
-            <option value="publication">Publicacion</option>
-            <option value="collection">Coleccion</option>
-            <option value="drop">Drop</option>
-          </select>
-        </label>
-        <label className="text-[10px] font-black uppercase tracking-[0.1em] text-(--text)">
-          Publication ID
-          <input
-            value={publicationId}
-            onChange={(event) => setPublicationId(event.target.value)}
-            className="mt-1 h-9 w-full rounded-[10px] border border-(--border) bg-white px-2.5 text-[11px]"
-            placeholder="uuid"
-          />
-        </label>
-        <label className="text-[10px] font-black uppercase tracking-[0.1em] text-(--text)">
-          Collection ID
-          <input
-            value={collectionId}
-            onChange={(event) => setCollectionId(event.target.value)}
-            className="mt-1 h-9 w-full rounded-[10px] border border-(--border) bg-white px-2.5 text-[11px]"
-            placeholder="uuid"
-          />
-        </label>
-        <label className="text-[10px] font-black uppercase tracking-[0.1em] text-(--text)">
-          Drop ID
-          <input
-            value={dropId}
-            onChange={(event) => setDropId(event.target.value)}
-            className="mt-1 h-9 w-full rounded-[10px] border border-(--border) bg-white px-2.5 text-[11px]"
-            placeholder="uuid"
-          />
-        </label>
+        <SelectField label="Scope" labelClassName="saut-form-label text-[10px]" value={scope} onChange={(event) => setScope(event.target.value as Scope)} size="sm" options={[{ value: "general", label: "General" }, { value: "type", label: "Tipo" }, { value: "publication", label: "Publicacion" }, { value: "collection", label: "Coleccion" }, { value: "drop", label: "Drop" }]} />
+        <TextField label="Publication ID" labelClassName="saut-form-label text-[10px]" value={publicationId} onChange={(event) => setPublicationId(event.target.value)} size="sm" placeholder="uuid" inputClassName="text-[11px]" />
+        <TextField label="Collection ID" labelClassName="saut-form-label text-[10px]" value={collectionId} onChange={(event) => setCollectionId(event.target.value)} size="sm" placeholder="uuid" inputClassName="text-[11px]" />
+        <TextField label="Drop ID" labelClassName="saut-form-label text-[10px]" value={dropId} onChange={(event) => setDropId(event.target.value)} size="sm" placeholder="uuid" inputClassName="text-[11px]" />
       </div>
 
       <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-6">
-        <input value={garmentType} onChange={(event) => setGarmentType(event.target.value)} className="h-8 rounded-[10px] border border-(--border) bg-white px-2 text-[11px]" placeholder="garment_type" />
-        <input value={garmentModel} onChange={(event) => setGarmentModel(event.target.value)} className="h-8 rounded-[10px] border border-(--border) bg-white px-2 text-[11px]" placeholder="model" />
-        <input value={color} onChange={(event) => setColor(event.target.value)} className="h-8 rounded-[10px] border border-(--border) bg-white px-2 text-[11px]" placeholder="color" />
-        <input value={size} onChange={(event) => setSize(event.target.value)} className="h-8 rounded-[10px] border border-(--border) bg-white px-2 text-[11px]" placeholder="size" />
-        <input value={grammage} onChange={(event) => setGrammage(event.target.value)} className="h-8 rounded-[10px] border border-(--border) bg-white px-2 text-[11px]" placeholder="grammage" />
-        <input value={fit} onChange={(event) => setFit(event.target.value)} className="h-8 rounded-[10px] border border-(--border) bg-white px-2 text-[11px]" placeholder="fit" />
+        <TextField label="Tipo de prenda" labelClassName="sr-only" value={garmentType} onChange={(event) => setGarmentType(event.target.value)} size="sm" placeholder="garment_type" inputClassName="text-[11px]" />
+        <TextField label="Modelo" labelClassName="sr-only" value={garmentModel} onChange={(event) => setGarmentModel(event.target.value)} size="sm" placeholder="model" inputClassName="text-[11px]" />
+        <TextField label="Color" labelClassName="sr-only" value={color} onChange={(event) => setColor(event.target.value)} size="sm" placeholder="color" inputClassName="text-[11px]" />
+        <TextField label="Talla" labelClassName="sr-only" value={size} onChange={(event) => setSize(event.target.value)} size="sm" placeholder="size" inputClassName="text-[11px]" />
+        <TextField label="Gramaje" labelClassName="sr-only" value={grammage} onChange={(event) => setGrammage(event.target.value)} size="sm" placeholder="grammage" inputClassName="text-[11px]" />
+        <TextField label="Fit" labelClassName="sr-only" value={fit} onChange={(event) => setFit(event.target.value)} size="sm" placeholder="fit" inputClassName="text-[11px]" />
       </div>
 
       <div className="mt-4 grid gap-3 lg:grid-cols-[1.2fr_1fr]">
-        <div className="relative h-[320px] overflow-hidden rounded-[16px] border border-(--border) bg-[radial-gradient(circle_at_18%_18%,rgba(255,214,85,.42),transparent_42%),radial-gradient(circle_at_78%_70%,rgba(13,119,167,.28),transparent_46%),linear-gradient(160deg,rgba(255,255,255,.82),rgba(246,249,252,.55))]">
+        <div className="relative h-[320px] overflow-hidden rounded-[16px] border border-hairline bg-[radial-gradient(circle_at_18%_18%,rgba(255,214,85,.42),transparent_42%),radial-gradient(circle_at_78%_70%,rgba(13,119,167,.28),transparent_46%),linear-gradient(160deg,rgba(255,255,255,.82),rgba(246,249,252,.55))]">
           {dots.map((dot) => (
             <div
               key={dot.ping.id}
@@ -291,19 +245,19 @@ export function RealtimeSalesMap() {
               <span className="relative block h-2.5 w-2.5 rounded-full bg-[rgb(227,58,58)]" />
             </div>
           ))}
-          <div className="absolute bottom-2 left-2 rounded-[999px] border border-(--border) bg-white/80 px-2 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-(--text)">
+          <div className="absolute bottom-2 left-2 rounded-[999px] border border-hairline bg-white/80 px-2 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-ink">
             Pings: {pings.length}
           </div>
         </div>
 
-        <div className="rounded-[16px] border border-(--border) bg-white/74 p-3">
-          <p className="text-[10px] font-black uppercase tracking-[0.1em] text-(--text)">
+        <div className="rounded-[16px] border border-hairline bg-white/74 p-3">
+          <p className="text-[10px] font-black uppercase tracking-[0.1em] text-ink">
             Feed recien confirmado
           </p>
           <div className="mt-2 max-h-[280px] space-y-2 overflow-auto pr-1">
             {pings.slice(0, 24).map((ping) => (
-              <article key={ping.id} className="rounded-[10px] border border-(--border) bg-white px-2.5 py-2">
-                <p className="text-[10px] font-black uppercase tracking-[0.08em] text-(--text)">
+              <article key={ping.id} className="rounded-[10px] border border-hairline bg-white px-2.5 py-2">
+                <p className="text-[10px] font-black uppercase tracking-[0.08em] text-ink">
                   {ping.state_code ?? "sin estado"} | ${formatMoney(ping.amount_mxn)}
                 </p>
                 <p className="text-[10px] text-[rgba(8,10,13,.64)]">

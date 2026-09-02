@@ -7,7 +7,7 @@ import * as React from "react";
 
 import { useCart } from "@/core/cart";
 import type { CartItem, CartPrintArea } from "@/core/cart/context";
-import { SelectField } from "@/core/design-system";
+import { Button, RadioControl, SelectField, TextField } from "@/core/design-system";
 import { useToast } from "@/core/design-system/feedback/ToastHost";
 import { getSession } from "@/modules/auth/client/session";
 import {
@@ -454,20 +454,20 @@ function PaymentStepCard({
       <div className="rounded-[26px] border border-[rgba(12,128,175,.18)] bg-[linear-gradient(160deg,rgba(255,255,255,.96)_0%,rgba(12,128,175,.08)_100%)] p-4 shadow-[0_24px_48px_rgba(8,10,13,.08)] sm:p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-[11px] font-black uppercase tracking-[0.16em] text-(--saut-navy)">
+            <p className="text-[11px] font-black uppercase tracking-[0.16em] text-charcoal">
               Pago seguro
             </p>
-            <h3 className="mt-2 text-[22px] font-black uppercase tracking-[0.06em] text-(--text)">
+            <h3 className="mt-2 text-[22px] font-black uppercase tracking-[0.06em] text-ink">
               {isHostedStripe ? "Te llevamos a Stripe Checkout" : "Confirmacion final"}
             </h3>
-            <p className="mt-2 max-w-2xl text-[13px] text-(--muted)">
+            <p className="mt-2 max-w-2xl text-[13px] text-mute">
               {isHostedStripe
                 ? "El pago ya no se captura aqui. Abres la pagina segura de Stripe y alla eliges tarjeta, Google Pay, Apple Pay o Link. Cuando regreses confirmamos la orden."
                 : "En desarrollo puedes cerrar la compra sin salir del sitio para seguir validando el flujo completo."}
             </p>
           </div>
 
-          <span className="rounded-full border border-[rgba(12,128,175,.18)] bg-white/88 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-(--saut-navy)">
+          <span className="rounded-full border border-[rgba(12,128,175,.18)] bg-white/88 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-charcoal">
             {isHostedStripe ? "Stripe Checkout" : "Stripe mock"}
           </span>
         </div>
@@ -476,7 +476,7 @@ function PaymentStepCard({
           {HOSTED_PAYMENT_METHODS.map((method) => (
             <span
               key={method}
-              className="rounded-full border border-[rgba(8,10,13,.08)] bg-white/92 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-(--text)"
+              className="rounded-full border border-[rgba(8,10,13,.08)] bg-white/92 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-ink"
             >
               {method}
             </span>
@@ -485,30 +485,30 @@ function PaymentStepCard({
 
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <div className="rounded-[18px] border border-[rgba(8,10,13,.08)] bg-white/90 p-3">
-            <p className="text-[10px] font-black uppercase tracking-[0.14em] text-(--muted)">
+            <p className="text-[10px] font-black uppercase tracking-[0.14em] text-mute">
               Contacto
             </p>
-            <p className="mt-2 text-[13px] font-black text-(--text)">{email}</p>
-            <p className="mt-1 text-[12px] text-(--muted)">{phone}</p>
+            <p className="mt-2 text-[13px] font-black text-ink">{email}</p>
+            <p className="mt-1 text-[12px] text-mute">{phone}</p>
           </div>
           <div className="rounded-[18px] border border-[rgba(8,10,13,.08)] bg-white/90 p-3">
-            <p className="text-[10px] font-black uppercase tracking-[0.14em] text-(--muted)">
+            <p className="text-[10px] font-black uppercase tracking-[0.14em] text-mute">
               Tipo de entrega
             </p>
-            <p className="mt-2 text-[13px] font-black text-(--text)">
+            <p className="mt-2 text-[13px] font-black text-ink">
               {shippingTypeLabel(checkoutSession)}
             </p>
-            <p className="mt-1 text-[12px] text-(--muted)">
+            <p className="mt-1 text-[12px] text-mute">
               {formatQuoteLabel(checkoutSession)}
             </p>
           </div>
         </div>
 
         <div className="mt-3 rounded-[20px] border border-[rgba(8,10,13,.08)] bg-white/92 p-3">
-          <p className="text-[10px] font-black uppercase tracking-[0.14em] text-(--muted)">
+          <p className="text-[10px] font-black uppercase tracking-[0.14em] text-mute">
             Direccion confirmada
           </p>
-          <p className="mt-2 text-[12px] leading-6 text-(--text)">{addressSummary}</p>
+          <p className="mt-2 text-[12px] leading-6 text-ink">{addressSummary}</p>
         </div>
 
         {localError ? (
@@ -518,43 +518,51 @@ function PaymentStepCard({
         ) : null}
 
         <div className="mt-4 flex flex-wrap gap-3">
-          <button
+          <Button
             type="button"
+            variant="outline"
+            size="sm"
             onClick={onBack}
             disabled={busy || localBusy}
-            className="inline-flex h-11 items-center justify-center rounded-[999px] border border-(--border) bg-white/88 px-4 text-[11px] font-black uppercase tracking-[0.16em] text-(--text) transition hover:-translate-y-[1px] hover:shadow-[0_14px_28px_rgba(8,10,13,.08)] disabled:cursor-not-allowed disabled:opacity-60"
+            className="h-11 rounded-[999px] bg-white/88 text-[11px]"
           >
             Volver al paso 1
-          </button>
+          </Button>
 
           {isHostedStripe ? (
-            <button
+            <Button
               type="button"
+              variant="primary"
+              size="sm"
+              fullWidth
               onClick={handleOpenHostedCheckout}
               disabled={busy || localBusy || !checkoutUrl}
-              className="inline-flex h-11 flex-1 items-center justify-center rounded-[999px] border border-(--border) bg-(--saut-yellow) px-5 text-[11px] font-black uppercase tracking-[0.16em] text-(--saut-black) shadow-[0_18px_36px_rgba(8,10,13,.12)] transition hover:-translate-y-[1px] hover:shadow-[0_22px_42px_rgba(8,10,13,.16)] disabled:cursor-not-allowed disabled:opacity-60"
+              className="h-11 rounded-[999px] text-[11px]"
             >
               {localBusy ? "Abriendo Stripe..." : "Ir a Stripe Checkout"}
-            </button>
+            </Button>
           ) : (
-            <button
+            <Button
               type="button"
+              variant="primary"
+              size="sm"
+              fullWidth
               onClick={() => void handleMockConfirm()}
               disabled={busy || localBusy}
-              className="inline-flex h-11 flex-1 items-center justify-center rounded-[999px] border border-(--border) bg-(--saut-yellow) px-5 text-[11px] font-black uppercase tracking-[0.16em] text-(--saut-black) shadow-[0_18px_36px_rgba(8,10,13,.12)] transition hover:-translate-y-[1px] hover:shadow-[0_22px_42px_rgba(8,10,13,.16)] disabled:cursor-not-allowed disabled:opacity-60"
+              className="h-11 rounded-[999px] text-[11px]"
             >
               {busy || localBusy ? "Procesando..." : "Confirmar pago mock"}
-            </button>
+            </Button>
           )}
         </div>
       </div>
 
       <div className="space-y-3">
         <div className="rounded-[22px] border border-[rgba(8,10,13,.08)] bg-[rgba(255,255,255,.9)] p-3 shadow-[0_18px_34px_rgba(8,10,13,.05)]">
-          <p className="text-[10px] font-black uppercase tracking-[0.14em] text-(--muted)">
+          <p className="text-[10px] font-black uppercase tracking-[0.14em] text-mute">
             Flujo
           </p>
-          <div className="mt-3 space-y-2 text-[12px] text-(--muted)">
+          <div className="mt-3 space-y-2 text-[12px] text-mute">
             <div className="rounded-[16px] border border-[rgba(8,10,13,.08)] bg-white/92 px-3 py-2">
               1. Confirmas contacto, direccion y envio.
             </div>
@@ -568,13 +576,13 @@ function PaymentStepCard({
         </div>
 
         <div className="rounded-[22px] border border-[rgba(8,10,13,.08)] bg-[rgba(255,255,255,.9)] p-3 shadow-[0_18px_34px_rgba(8,10,13,.05)]">
-          <p className="text-[10px] font-black uppercase tracking-[0.14em] text-(--muted)">
+          <p className="text-[10px] font-black uppercase tracking-[0.14em] text-mute">
             Total a cobrar
           </p>
-          <p className="mt-2 text-[28px] font-black tracking-[0.03em] text-(--text)">
+          <p className="mt-2 text-[28px] font-black tracking-[0.03em] text-ink">
             ${money(checkoutSession.total_mxn)}
           </p>
-          <p className="mt-2 text-[12px] text-(--muted)">
+          <p className="mt-2 text-[12px] text-mute">
             Stripe mostrara el cargo final con las opciones de pago disponibles para el dispositivo del cliente.
           </p>
         </div>
@@ -630,7 +638,7 @@ function CheckoutExperienceContent() {
 
   React.useEffect(() => {
     const session = getSession();
-    setAccountId(session?.accountId ?? null);
+    queueMicrotask(() => setAccountId(session?.accountId ?? null));
     if (session?.accountId) {
       migrateGuestLinkedOrdersToAccount(session.accountId);
     }
@@ -703,12 +711,14 @@ function CheckoutExperienceContent() {
       return;
     }
 
-    setCurrentStep("address");
-    setCheckoutSession(null);
-    setPaymentAttempt(null);
-    setSelectedQuoteId("");
-    setError(null);
-    setMessage(null);
+    queueMicrotask(() => {
+      setCurrentStep("address");
+      setCheckoutSession(null);
+      setPaymentAttempt(null);
+      setSelectedQuoteId("");
+      setError(null);
+      setMessage(null);
+    });
   }, [checkoutSession, currentStep, inputSignature, paymentAttempt]);
 
   const validateCheckoutInput = React.useCallback(() => {
@@ -864,9 +874,11 @@ function CheckoutExperienceContent() {
       void cancelPaymentAttempt(paymentAttemptParam).catch(() => undefined);
     }
 
-    setCurrentStep("address");
-    setError(null);
-    setMessage("Pago cancelado en Stripe. Liberamos la reserva y tu carrito sigue intacto.");
+    queueMicrotask(() => {
+      setCurrentStep("address");
+      setError(null);
+      setMessage("Pago cancelado en Stripe. Liberamos la reserva y tu carrito sigue intacto.");
+    });
     void router.replace("/checkout");
   }, [checkoutFlowParam, paymentAttemptParam, router]);
 
@@ -1013,18 +1025,18 @@ function CheckoutExperienceContent() {
   if (busyResolvingReturn || hasHostedReturnParams) {
     return (
       <main className="w-full px-4 py-8 sm:px-8 lg:px-14">
-        <section className="mx-auto max-w-3xl rounded-[28px] border border-(--border) bg-[linear-gradient(160deg,rgba(255,255,255,.94)_0%,rgba(12,128,175,.08)_100%)] p-6 shadow-[0_24px_56px_rgba(8,10,13,.08)]">
-          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-(--saut-navy)">
+        <section className="mx-auto max-w-3xl rounded-[28px] border border-hairline bg-[linear-gradient(160deg,rgba(255,255,255,.94)_0%,rgba(12,128,175,.08)_100%)] p-6 shadow-[0_24px_56px_rgba(8,10,13,.08)]">
+          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-charcoal">
             Stripe Checkout
           </p>
-          <h1 className="mt-3 text-[26px] font-black uppercase tracking-[0.06em] text-(--text)">
+          <h1 className="mt-3 text-[26px] font-black uppercase tracking-[0.06em] text-ink">
             Verificando tu pago
           </h1>
-          <p className="mt-3 text-[13px] leading-6 text-(--muted)">
+          <p className="mt-3 text-[13px] leading-6 text-mute">
             Estamos confirmando la transaccion, validando stock y preparando la orden.
           </p>
           <div className="mt-6 h-2 overflow-hidden rounded-full bg-[rgba(8,10,13,.08)]">
-            <div className="h-full w-1/2 animate-pulse rounded-full bg-(--saut-yellow)" />
+            <div className="h-full w-1/2 animate-pulse rounded-full bg-primary" />
           </div>
         </section>
       </main>
@@ -1034,16 +1046,16 @@ function CheckoutExperienceContent() {
   if (items.length === 0) {
     return (
       <main className="w-full px-4 py-8 sm:px-8 lg:px-14">
-        <section className="mx-auto max-w-3xl rounded-[22px] border border-(--border) bg-[rgba(255,255,255,.45)] p-6">
-          <h1 className="text-[24px] font-black uppercase tracking-[0.06em] text-(--text)">
+        <section className="mx-auto max-w-3xl rounded-[22px] border border-hairline bg-[rgba(255,255,255,.45)] p-6">
+          <h1 className="text-[24px] font-black uppercase tracking-[0.06em] text-ink">
             Checkout
           </h1>
-          <p className="mt-2 text-[13px] text-(--muted)">
+          <p className="mt-2 text-[13px] text-mute">
             Tu carrito esta vacio. Agrega productos del catalogo o del personalizador.
           </p>
           <Link
             href="/catalogo"
-            className="mt-5 inline-flex h-10 items-center justify-center rounded-[999px] border border-(--border) bg-(--saut-yellow) px-4 text-[11px] font-black uppercase tracking-[0.14em] text-(--saut-black)"
+            className="mt-5 inline-flex h-10 items-center justify-center rounded-[999px] border border-hairline bg-primary px-4 text-[11px] font-black uppercase tracking-[0.14em] text-ink"
           >
             Ir al catalogo
           </Link>
@@ -1055,16 +1067,16 @@ function CheckoutExperienceContent() {
   return (
     <main className="w-full px-3 py-5 sm:px-6 sm:py-6 lg:px-10">
       <section className="mx-auto grid max-w-[1580px] gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(360px,.8fr)]">
-        <article className="rounded-[30px] border border-(--border) bg-[linear-gradient(180deg,rgba(255,255,255,.76)_0%,rgba(255,255,255,.5)_100%)] p-4 shadow-[0_24px_56px_rgba(8,10,13,.08)] backdrop-blur-[12px] sm:p-5 lg:p-6">
+        <article className="rounded-[30px] border border-hairline bg-[linear-gradient(180deg,rgba(255,255,255,.76)_0%,rgba(255,255,255,.5)_100%)] p-4 shadow-[0_24px_56px_rgba(8,10,13,.08)] backdrop-blur-[12px] sm:p-5 lg:p-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="text-[11px] font-black uppercase tracking-[0.18em] text-(--saut-navy)">
+              <p className="text-[11px] font-black uppercase tracking-[0.18em] text-charcoal">
                 Paso {currentStep === "address" ? "1" : "2"} de 2
               </p>
-              <h1 className="mt-2 text-[26px] font-black uppercase tracking-[0.06em] text-(--text)">
+              <h1 className="mt-2 text-[26px] font-black uppercase tracking-[0.06em] text-ink">
                 {currentStep === "address" ? "Direccion y contacto" : "Pago en Stripe"}
               </h1>
-              <p className="mt-2 max-w-2xl text-[13px] text-(--muted)">
+              <p className="mt-2 max-w-2xl text-[13px] text-mute">
                 {currentStep === "address"
                   ? "Primero confirmas contacto, direccion y envio. Cuando todo cuadra, el bloque se desliza y pasas directo al pago."
                   : "El pago ocurre fuera del sitio, en la pagina segura de Stripe Checkout con tarjeta, wallets y metodos compatibles."}
@@ -1072,13 +1084,13 @@ function CheckoutExperienceContent() {
             </div>
 
             <div className="rounded-[22px] border border-[rgba(12,128,175,.16)] bg-[rgba(12,128,175,.08)] px-3 py-2 text-right shadow-[0_16px_32px_rgba(12,128,175,.08)]">
-              <p className="text-[10px] font-black uppercase tracking-[0.14em] text-(--saut-navy)">
+              <p className="text-[10px] font-black uppercase tracking-[0.14em] text-charcoal">
                 Total listo
               </p>
-              <p className="mt-1 text-[24px] font-black tracking-[0.03em] text-(--text)">
+              <p className="mt-1 text-[24px] font-black tracking-[0.03em] text-ink">
                 ${money(summaryTotal)}
               </p>
-              <p className="mt-1 text-[11px] text-(--muted)">
+              <p className="mt-1 text-[11px] text-mute">
                 {shippingTypeLabel(checkoutSession)} / {formatQuoteLabel(checkoutSession)}
               </p>
             </div>
@@ -1091,7 +1103,7 @@ function CheckoutExperienceContent() {
           ) : null}
 
           {message ? (
-            <div className="mt-4 rounded-[18px] border border-[rgba(12,128,175,.28)] bg-[rgba(12,128,175,.1)] px-3 py-2 text-[12px] text-(--saut-navy)">
+            <div className="mt-4 rounded-[18px] border border-[rgba(12,128,175,.28)] bg-[rgba(12,128,175,.1)] px-3 py-2 text-[12px] text-charcoal">
               {message}
             </div>
           ) : null}
@@ -1105,18 +1117,18 @@ function CheckoutExperienceContent() {
                   "flex items-center justify-between rounded-[20px] border px-4 py-3 text-left transition",
                   currentStep === "address"
                     ? "border-[rgba(12,128,175,.28)] bg-[rgba(12,128,175,.1)] shadow-[0_20px_40px_rgba(12,128,175,.08)]"
-                    : "border-(--border) bg-white/78 hover:-translate-y-[1px] hover:shadow-[0_18px_32px_rgba(8,10,13,.06)]",
+                    : "border-hairline bg-white/78 hover:-translate-y-[1px] hover:shadow-[0_18px_32px_rgba(8,10,13,.06)]",
                 ].join(" ")}
               >
                 <span>
-                  <span className="block text-[10px] font-black uppercase tracking-[0.16em] text-(--saut-navy)">
+                  <span className="block text-[10px] font-black uppercase tracking-[0.16em] text-charcoal">
                     Paso 1
                   </span>
-                  <span className="mt-1 block text-[15px] font-black uppercase tracking-[0.06em] text-(--text)">
+                  <span className="mt-1 block text-[15px] font-black uppercase tracking-[0.06em] text-ink">
                     Contacto y entrega
                   </span>
                 </span>
-                <span className="rounded-full border border-(--border) bg-white/88 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-(--text)">
+                <span className="rounded-full border border-hairline bg-white/88 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-ink">
                   Activo
                 </span>
               </button>
@@ -1133,18 +1145,18 @@ function CheckoutExperienceContent() {
                   "flex items-center justify-between rounded-[20px] border px-4 py-3 text-left transition disabled:cursor-not-allowed disabled:opacity-60",
                   currentStep === "payment"
                     ? "border-[rgba(255,217,66,.42)] bg-[rgba(255,217,66,.16)] shadow-[0_20px_40px_rgba(255,217,66,.12)]"
-                    : "border-(--border) bg-white/78 hover:-translate-y-[1px] hover:shadow-[0_18px_32px_rgba(8,10,13,.06)]",
+                    : "border-hairline bg-white/78 hover:-translate-y-[1px] hover:shadow-[0_18px_32px_rgba(8,10,13,.06)]",
                 ].join(" ")}
               >
                 <span>
-                  <span className="block text-[10px] font-black uppercase tracking-[0.16em] text-(--saut-navy)">
+                  <span className="block text-[10px] font-black uppercase tracking-[0.16em] text-charcoal">
                     Paso 2
                   </span>
-                  <span className="mt-1 block text-[15px] font-black uppercase tracking-[0.06em] text-(--text)">
+                  <span className="mt-1 block text-[15px] font-black uppercase tracking-[0.06em] text-ink">
                     Pago en Stripe
                   </span>
                 </span>
-                <span className="rounded-full border border-(--border) bg-white/88 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-(--text)">
+                <span className="rounded-full border border-hairline bg-white/88 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-ink">
                   {paymentAttempt ? "Listo" : "Pendiente"}
                 </span>
               </button>
@@ -1159,28 +1171,32 @@ function CheckoutExperienceContent() {
                   <div className="rounded-[26px] border border-[rgba(12,128,175,.22)] bg-[linear-gradient(180deg,rgba(12,128,175,.08)_0%,rgba(255,255,255,.92)_100%)] p-3 shadow-[0_20px_40px_rgba(8,10,13,.05)] sm:p-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p className="text-[11px] font-black uppercase tracking-[0.16em] text-(--saut-navy)">
+                  <p className="text-[11px] font-black uppercase tracking-[0.16em] text-charcoal">
                     Contacto
                   </p>
-                  <h2 className="mt-1 text-[17px] font-black uppercase tracking-[0.06em] text-(--text)">
+                  <h2 className="mt-1 text-[17px] font-black uppercase tracking-[0.06em] text-ink">
                     Direccion y envio
                   </h2>
-                  <p className="mt-1 text-[12px] text-(--muted)">
+                  <p className="mt-1 text-[12px] text-mute">
                     Completa contacto, direccion y tipo de entrega. Cuando sigues, este bloque se cierra y se desliza el paso 2.
                   </p>
                 </div>
-                <span className="rounded-full border border-(--border) bg-white/82 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-(--text)">
+                <span className="rounded-full border border-hairline bg-white/82 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-ink">
                   {normalizedPhone}
                 </span>
               </div>
 
               <div className="mt-4 grid gap-3">
                 <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_220px_minmax(0,1fr)]">
-                  <input
+                  <TextField
+                    size="sm"
+                    type="email"
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
                     placeholder="Correo"
-                    className="h-11 rounded-[16px] border border-(--border) bg-white/90 px-4 text-[13px] shadow-[inset_0_1px_0_rgba(255,255,255,.88)] transition focus:border-[rgba(12,128,175,.35)] focus:outline-none focus:ring-2 focus:ring-[rgba(12,128,175,.12)]"
+                    aria-label="Correo electrónico"
+                    shellClassName="h-11 rounded-[16px] bg-white/90"
+                    inputClassName="text-[13px]"
                   />
                   <SelectField
                     value={phonePrefix}
@@ -1192,14 +1208,18 @@ function CheckoutExperienceContent() {
                     placeholder="Lada"
                     shellClassName="h-11 rounded-[16px] bg-white/90"
                   />
-                  <input
+                  <TextField
+                    size="sm"
+                    type="tel"
                     value={phone}
                     onChange={(event) => setPhone(event.target.value)}
                     placeholder={
                       CONTACT_PREFIX_OPTIONS.find((item) => item.value === phonePrefix)
                         ?.placeholder ?? "Telefono"
                     }
-                    className="h-11 rounded-[16px] border border-(--border) bg-white/90 px-4 text-[13px] shadow-[inset_0_1px_0_rgba(255,255,255,.88)] transition focus:border-[rgba(12,128,175,.35)] focus:outline-none focus:ring-2 focus:ring-[rgba(12,128,175,.12)]"
+                    aria-label="Teléfono"
+                    shellClassName="h-11 rounded-[16px] bg-white/90"
+                    inputClassName="text-[13px]"
                   />
                 </div>
 
@@ -1215,36 +1235,11 @@ function CheckoutExperienceContent() {
                 />
 
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  <input
-                    value={line1}
-                    onChange={(event) => setLine1(event.target.value)}
-                    placeholder="Calle y numero"
-                    className="h-11 rounded-[16px] border border-(--border) bg-white/90 px-4 text-[13px] shadow-[inset_0_1px_0_rgba(255,255,255,.88)] transition focus:border-[rgba(12,128,175,.35)] focus:outline-none focus:ring-2 focus:ring-[rgba(12,128,175,.12)] sm:col-span-2 lg:col-span-2"
-                  />
-                  <input
-                    value={line2}
-                    onChange={(event) => setLine2(event.target.value)}
-                    placeholder="Colonia, depto o interior"
-                    className="h-11 rounded-[16px] border border-(--border) bg-white/90 px-4 text-[13px] shadow-[inset_0_1px_0_rgba(255,255,255,.88)] transition focus:border-[rgba(12,128,175,.35)] focus:outline-none focus:ring-2 focus:ring-[rgba(12,128,175,.12)] sm:col-span-2 lg:col-span-1"
-                  />
-                  <input
-                    value={city}
-                    onChange={(event) => setCity(event.target.value)}
-                    placeholder="Ciudad"
-                    className="h-11 rounded-[16px] border border-(--border) bg-white/90 px-4 text-[13px] shadow-[inset_0_1px_0_rgba(255,255,255,.88)] transition focus:border-[rgba(12,128,175,.35)] focus:outline-none focus:ring-2 focus:ring-[rgba(12,128,175,.12)]"
-                  />
-                  <input
-                    value={stateName}
-                    onChange={(event) => setStateName(event.target.value)}
-                    placeholder="Estado"
-                    className="h-11 rounded-[16px] border border-(--border) bg-white/90 px-4 text-[13px] shadow-[inset_0_1px_0_rgba(255,255,255,.88)] transition focus:border-[rgba(12,128,175,.35)] focus:outline-none focus:ring-2 focus:ring-[rgba(12,128,175,.12)]"
-                  />
-                  <input
-                    value={postalCode}
-                    onChange={(event) => setPostalCode(event.target.value)}
-                    placeholder="Codigo postal"
-                    className="h-11 rounded-[16px] border border-(--border) bg-white/90 px-4 text-[13px] shadow-[inset_0_1px_0_rgba(255,255,255,.88)] transition focus:border-[rgba(12,128,175,.35)] focus:outline-none focus:ring-2 focus:ring-[rgba(12,128,175,.12)]"
-                  />
+                  <TextField size="sm" value={line1} onChange={(event) => setLine1(event.target.value)} placeholder="Calle y numero" aria-label="Calle y número" shellClassName="h-11 rounded-[16px] bg-white/90" inputClassName="text-[13px]" wrapperClassName="sm:col-span-2 lg:col-span-2" />
+                  <TextField size="sm" value={line2} onChange={(event) => setLine2(event.target.value)} placeholder="Colonia, depto o interior" aria-label="Colonia, departamento o interior" shellClassName="h-11 rounded-[16px] bg-white/90" inputClassName="text-[13px]" wrapperClassName="sm:col-span-2 lg:col-span-1" />
+                  <TextField size="sm" value={city} onChange={(event) => setCity(event.target.value)} placeholder="Ciudad" aria-label="Ciudad" shellClassName="h-11 rounded-[16px] bg-white/90" inputClassName="text-[13px]" />
+                  <TextField size="sm" value={stateName} onChange={(event) => setStateName(event.target.value)} placeholder="Estado" aria-label="Estado" shellClassName="h-11 rounded-[16px] bg-white/90" inputClassName="text-[13px]" />
+                  <TextField size="sm" value={postalCode} onChange={(event) => setPostalCode(event.target.value)} placeholder="Codigo postal" aria-label="Código postal" shellClassName="h-11 rounded-[16px] bg-white/90" inputClassName="text-[13px]" />
                   <SelectField
                     value={country}
                     onChange={(event) => setCountry(event.target.value)}
@@ -1252,32 +1247,27 @@ function CheckoutExperienceContent() {
                     placeholder="Pais"
                     shellClassName="h-11 rounded-[16px] bg-white/92"
                   />
-                  <input
-                    value={reference}
-                    onChange={(event) => setReference(event.target.value)}
-                    placeholder="Referencia"
-                    className="h-11 rounded-[16px] border border-(--border) bg-white/90 px-4 text-[13px] shadow-[inset_0_1px_0_rgba(255,255,255,.88)] transition focus:border-[rgba(12,128,175,.35)] focus:outline-none focus:ring-2 focus:ring-[rgba(12,128,175,.12)] sm:col-span-2 lg:col-span-2"
-                  />
+                  <TextField size="sm" value={reference} onChange={(event) => setReference(event.target.value)} placeholder="Referencia" aria-label="Referencia" shellClassName="h-11 rounded-[16px] bg-white/90" inputClassName="text-[13px]" wrapperClassName="sm:col-span-2 lg:col-span-2" />
                 </div>
 
                 {checkoutSession ? (
                   <div className="rounded-[22px] border border-[rgba(12,128,175,.14)] bg-[linear-gradient(180deg,rgba(12,128,175,.08)_0%,rgba(255,255,255,.92)_100%)] p-3 shadow-[0_18px_34px_rgba(8,10,13,.05)]">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div>
-                        <p className="text-[11px] font-black uppercase tracking-[0.14em] text-(--saut-navy)">
+                        <p className="text-[11px] font-black uppercase tracking-[0.14em] text-charcoal">
                           Envio calculado
                         </p>
-                        <p className="mt-1 text-[12px] text-(--muted)">
+                        <p className="mt-1 text-[12px] text-mute">
                           Tipo de entrega: {shippingTypeLabel(checkoutSession)} / {formatQuoteLabel(checkoutSession)}
                         </p>
                       </div>
-                      <span className="rounded-full border border-(--border) bg-white/88 px-3 py-1 text-[11px] font-black text-(--text)">
+                      <span className="rounded-full border border-hairline bg-white/88 px-3 py-1 text-[11px] font-black text-ink">
                         ${money(checkoutSession.shipping_cost_mxn)}
                       </span>
                     </div>
 
                     {shippingProviderLooksMock(checkoutSession) ? (
-                      <p className="mt-3 text-[11px] text-(--muted)">
+                      <p className="mt-3 text-[11px] text-mute">
                         El proveedor sigue mockeado, pero el flujo ya queda alineado para conectarlo despues a Skydropx.
                       </p>
                     ) : null}
@@ -1287,23 +1277,23 @@ function CheckoutExperienceContent() {
                         {checkoutSession.shipping_quotes.map((quote) => (
                           <label
                             key={quote.quote_id}
-                            className="group flex cursor-pointer items-center justify-between gap-3 rounded-[18px] border border-(--border) bg-white/92 px-3 py-3 text-[12px] shadow-[0_14px_28px_rgba(8,10,13,.04)] transition hover:-translate-y-[1px] hover:shadow-[0_18px_30px_rgba(8,10,13,.08)]"
+                            className="group flex cursor-pointer items-center justify-between gap-3 rounded-[18px] border border-hairline bg-white/92 px-3 py-3 text-[12px] shadow-[0_14px_28px_rgba(8,10,13,.04)] transition hover:-translate-y-[1px] hover:shadow-[0_18px_30px_rgba(8,10,13,.08)]"
                           >
                             <span>
-                              <span className="block font-black uppercase tracking-[0.1em] text-(--text)">
+                              <span className="block font-black uppercase tracking-[0.1em] text-ink">
                                 {quote.provider}
                               </span>
-                              <span className="mt-1 block text-(--muted)">
+                              <span className="mt-1 block text-mute">
                                 {quote.service} / {quote.eta_days} dias
                               </span>
                             </span>
                             <span className="flex items-center gap-3">
-                              <span className="font-black text-(--saut-navy)">
+                              <span className="font-black text-charcoal">
                                 ${money(quote.price_mxn)}
                               </span>
-                              <input
-                                type="radio"
+                              <RadioControl
                                 name="shipping-quote"
+                                size="sm"
                                 checked={
                                   (selectedQuoteId || checkoutSession.shipping_quote_id) ===
                                   quote.quote_id
@@ -1318,7 +1308,7 @@ function CheckoutExperienceContent() {
                     ) : null}
 
                     {isLocal ? (
-                      <div className="mt-4 rounded-[18px] border border-(--border) bg-white/88 px-4 py-3 text-[12px] text-(--muted)">
+                      <div className="mt-4 rounded-[18px] border border-hairline bg-white/88 px-4 py-3 text-[12px] text-mute">
                         Tipo de entrega local detectado para {checkoutSession.address.city}. El costo queda congelado al pasar al paso 2.
                       </div>
                     ) : null}
@@ -1326,11 +1316,13 @@ function CheckoutExperienceContent() {
                 ) : null}
 
                 <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
-                  <p className="text-[11px] text-(--muted)">
+                  <p className="text-[11px] text-mute">
                     Al continuar se recalcula el checkout, se valida/reserva stock y solo entonces se habilita Stripe Checkout.
                   </p>
-                  <button
+                  <Button
                     type="button"
+                    variant="primary"
+                    size="sm"
                     onClick={() => void handleContinueToPayment()}
                     disabled={
                       !hasCompleteCheckoutInput ||
@@ -1339,12 +1331,13 @@ function CheckoutExperienceContent() {
                       busyPaymentSetup ||
                       busyPaying
                     }
-                    className="inline-flex h-11 items-center justify-center rounded-[999px] border border-(--border) bg-(--saut-yellow) px-6 text-[11px] font-black uppercase tracking-[0.16em] text-(--saut-black) shadow-[0_18px_36px_rgba(8,10,13,.12)] transition hover:-translate-y-[1px] hover:shadow-[0_22px_42px_rgba(8,10,13,.16)] disabled:cursor-not-allowed disabled:opacity-60"
+                    isLoading={busyPreparing || busyPaymentSetup}
+                    className="h-11 rounded-[999px] px-6 text-[11px]"
                   >
                     {busyPreparing || busyPaymentSetup
                       ? "Preparando paso 2..."
                       : "Continuar al paso 2"}
-                  </button>
+                  </Button>
                 </div>
               </div>
                   </div>
@@ -1353,7 +1346,7 @@ function CheckoutExperienceContent() {
                 <section className="min-w-full pl-0 sm:pl-1">
                   <div className="rounded-[26px] border border-[rgba(255,217,66,.26)] bg-[linear-gradient(180deg,rgba(255,217,66,.08)_0%,rgba(255,255,255,.94)_100%)] p-3 shadow-[0_20px_40px_rgba(8,10,13,.05)] sm:p-4">
                     {busyPaymentSetup && !paymentAttempt ? (
-                      <div className="rounded-[22px] border border-(--border) bg-white/84 px-4 py-5 text-[12px] text-(--muted)">
+                      <div className="rounded-[22px] border border-hairline bg-white/84 px-4 py-5 text-[12px] text-mute">
                         Estamos preparando la sesion de Stripe Checkout...
                       </div>
                     ) : paymentAttempt && checkoutSession ? (
@@ -1369,7 +1362,7 @@ function CheckoutExperienceContent() {
                         onError={setError}
                       />
                     ) : (
-                      <div className="rounded-[22px] border border-dashed border-(--border) bg-white/84 px-4 py-5 text-[12px] text-(--muted)">
+                      <div className="rounded-[22px] border border-dashed border-hairline bg-white/84 px-4 py-5 text-[12px] text-mute">
                         Primero completa el paso 1 para generar el checkout hosted de Stripe con el total definitivo.
                       </div>
                     )}
@@ -1380,22 +1373,22 @@ function CheckoutExperienceContent() {
           </div>
         </article>
 
-        <aside className="h-fit rounded-[30px] border border-(--border) bg-[linear-gradient(180deg,rgba(255,255,255,.78)_0%,rgba(255,255,255,.56)_100%)] p-4 shadow-[0_24px_56px_rgba(8,10,13,.08)] backdrop-blur-[12px] sm:p-5 lg:sticky lg:top-6">
+        <aside className="h-fit rounded-[30px] border border-hairline bg-[linear-gradient(180deg,rgba(255,255,255,.78)_0%,rgba(255,255,255,.56)_100%)] p-4 shadow-[0_24px_56px_rgba(8,10,13,.08)] backdrop-blur-[12px] sm:p-5 lg:sticky lg:top-6">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h2 className="text-[14px] font-black uppercase tracking-[0.14em] text-(--text)">
+              <h2 className="text-[14px] font-black uppercase tracking-[0.14em] text-ink">
                 Resumen
               </h2>
-              <p className="mt-1 text-[11px] text-(--muted)">
+              <p className="mt-1 text-[11px] text-mute">
                 {items.reduce((acc, item) => acc + item.quantity, 0)} items en el pedido
               </p>
             </div>
-            <span className="rounded-full border border-(--border) bg-white/82 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-(--text)">
+            <span className="rounded-full border border-hairline bg-white/82 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-ink">
               {currentStep === "payment" ? "Listo para cobrar" : checkoutSession ? "Cotizado" : "Previo"}
             </span>
           </div>
 
-          <div className="mt-4 rounded-[20px] border border-(--border) bg-[rgba(255,255,255,.88)] p-3 shadow-[0_16px_30px_rgba(8,10,13,.05)]">
+          <div className="mt-4 rounded-[20px] border border-hairline bg-[rgba(255,255,255,.88)] p-3 shadow-[0_16px_30px_rgba(8,10,13,.05)]">
             <div className="space-y-2 text-[12px]">
               <div className="flex items-center justify-between">
                 <span>Subtotal</span>
@@ -1407,24 +1400,24 @@ function CheckoutExperienceContent() {
                   {checkoutSession ? `$${money(summaryShipping)}` : "Pendiente"}
                 </span>
               </div>
-              <div className="flex items-center justify-between gap-3 text-[11px] text-(--muted)">
+              <div className="flex items-center justify-between gap-3 text-[11px] text-mute">
                 <span>Tipo de entrega</span>
                 <span className="text-right">{shippingTypeLabel(checkoutSession)}</span>
               </div>
-              <div className="flex items-center justify-between gap-3 text-[11px] text-(--muted)">
+              <div className="flex items-center justify-between gap-3 text-[11px] text-mute">
                 <span>Operador</span>
                 <span className="text-right">{formatQuoteLabel(checkoutSession)}</span>
               </div>
-              <div className="flex items-center justify-between gap-3 text-[11px] text-(--muted)">
+              <div className="flex items-center justify-between gap-3 text-[11px] text-mute">
                 <span>Pago</span>
                 <span className="text-right">
                   {currentStep === "payment" ? "Stripe Checkout" : "Pendiente"}
                 </span>
               </div>
-              <div className="mt-2 border-t border-(--border) pt-2 text-[13px]">
+              <div className="mt-2 border-t border-hairline pt-2 text-[13px]">
                 <div className="flex items-center justify-between">
                   <span className="font-black uppercase tracking-[0.08em]">Total</span>
-                  <span className="font-black text-(--saut-navy)">
+                  <span className="font-black text-charcoal">
                     ${money(summaryTotal)}
                   </span>
                 </div>
@@ -1436,7 +1429,7 @@ function CheckoutExperienceContent() {
             {detailedLines.map((line) => (
               <article
                 key={line.local.lineId}
-                className="group overflow-hidden rounded-[24px] border border-(--border) bg-[rgba(255,255,255,.92)] p-3 shadow-[0_18px_34px_rgba(8,10,13,.05)] transition duration-300 hover:-translate-y-[2px] hover:shadow-[0_24px_44px_rgba(8,10,13,.1)]"
+                className="group overflow-hidden rounded-[24px] border border-hairline bg-[rgba(255,255,255,.92)] p-3 shadow-[0_18px_34px_rgba(8,10,13,.05)] transition duration-300 hover:-translate-y-[2px] hover:shadow-[0_24px_44px_rgba(8,10,13,.1)]"
               >
                 <div className="flex gap-3">
                   <CheckoutItemPreview item={line.local} />
@@ -1444,24 +1437,24 @@ function CheckoutExperienceContent() {
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="truncate text-[13px] font-black uppercase tracking-[0.12em] text-(--text)">
+                        <p className="truncate text-[13px] font-black uppercase tracking-[0.12em] text-ink">
                           {line.local.name}
                         </p>
                         <div className="mt-2 flex flex-wrap gap-2">
-                          <span className="rounded-full border border-[rgba(12,128,175,.16)] bg-[rgba(12,128,175,.08)] px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-(--saut-navy)">
+                          <span className="rounded-full border border-[rgba(12,128,175,.16)] bg-[rgba(12,128,175,.08)] px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-charcoal">
                             {formatItemType(line.remote?.item_type ?? "")}
                           </span>
-                          <span className="rounded-full border border-(--border) bg-white px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-(--text)">
+                          <span className="rounded-full border border-hairline bg-white px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-ink">
                             {line.quantity} pieza{line.quantity > 1 ? "s" : ""}
                           </span>
                         </div>
                       </div>
 
                       <div className="rounded-[18px] border border-[rgba(8,10,13,.08)] bg-white/88 px-3 py-2 text-right shadow-[0_8px_18px_rgba(8,10,13,.04)]">
-                        <p className="text-[10px] font-black uppercase tracking-[0.14em] text-(--muted)">
+                        <p className="text-[10px] font-black uppercase tracking-[0.14em] text-mute">
                           Total item
                         </p>
-                        <p className="mt-1 text-[15px] font-black text-(--text)">
+                        <p className="mt-1 text-[15px] font-black text-ink">
                           ${money(line.lineTotal)}
                         </p>
                       </div>
@@ -1475,10 +1468,10 @@ function CheckoutExperienceContent() {
                           key={`${line.local.lineId}-${detail.label}`}
                           className="rounded-[16px] border border-[rgba(8,10,13,.08)] bg-[rgba(248,249,251,.92)] px-2 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,.9)]"
                         >
-                          <p className="text-[9px] font-black uppercase tracking-[0.14em] text-(--muted)">
+                          <p className="text-[9px] font-black uppercase tracking-[0.14em] text-mute">
                             {detail.label}
                           </p>
-                          <p className="mt-1 text-[11px] font-black text-(--text)">
+                          <p className="mt-1 text-[11px] font-black text-ink">
                             {detail.value}
                           </p>
                         </div>
@@ -1486,19 +1479,19 @@ function CheckoutExperienceContent() {
                     </div>
 
                     <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                      <div className="rounded-[16px] border border-(--border) bg-white/88 px-2 py-1.5 text-[11px]">
-                        <span className="block font-black uppercase tracking-[0.12em] text-(--muted)">
+                      <div className="rounded-[16px] border border-hairline bg-white/88 px-2 py-1.5 text-[11px]">
+                        <span className="block font-black uppercase tracking-[0.12em] text-mute">
                           Unitario
                         </span>
-                        <span className="mt-1 block font-black text-(--text)">
+                        <span className="mt-1 block font-black text-ink">
                           ${money(line.unitPrice)}
                         </span>
                       </div>
-                      <div className="rounded-[16px] border border-(--border) bg-white/88 px-2 py-1.5 text-[11px]">
-                        <span className="block font-black uppercase tracking-[0.12em] text-(--muted)">
+                      <div className="rounded-[16px] border border-hairline bg-white/88 px-2 py-1.5 text-[11px]">
+                        <span className="block font-black uppercase tracking-[0.12em] text-mute">
                           Cantidad
                         </span>
-                        <span className="mt-1 block font-black text-(--text)">
+                        <span className="mt-1 block font-black text-ink">
                           {line.quantity}
                         </span>
                       </div>
@@ -1507,7 +1500,7 @@ function CheckoutExperienceContent() {
                 </div>
 
                 {line.remote?.custom_note ? (
-                  <div className="mt-3 rounded-[14px] border border-(--border) bg-[rgba(255,217,66,.14)] px-3 py-2 text-[11px] text-(--text)">
+                  <div className="mt-3 rounded-[14px] border border-hairline bg-[rgba(255,217,66,.14)] px-3 py-2 text-[11px] text-ink">
                     <span className="font-black uppercase tracking-[0.08em]">
                       Nota:
                     </span>{" "}
@@ -1516,7 +1509,7 @@ function CheckoutExperienceContent() {
                 ) : null}
 
                 {line.remote?.improve_quality ? (
-                  <div className="mt-2 rounded-[14px] border border-(--border) bg-[rgba(12,128,175,.1)] px-3 py-2 text-[11px] text-(--saut-navy)">
+                  <div className="mt-2 rounded-[14px] border border-hairline bg-[rgba(12,128,175,.1)] px-3 py-2 text-[11px] text-charcoal">
                     Se solicito mejora de calidad para este item.
                   </div>
                 ) : null}

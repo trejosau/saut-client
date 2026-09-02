@@ -1,8 +1,9 @@
-﻿"use client";
+"use client";
 
 import { useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 
+import { DashboardModal, SelectField, TextField } from "@/core/design-system";
 import { FormErrorBag } from "@/core/design-system/feedback/FormErrorBag";
 import { toFormErrorBag, type FormErrorBag as FormErrorBagState } from "@/core/design-system/feedback/form-errors";
 import { useToast } from "@/core/design-system/feedback/ToastHost";
@@ -101,25 +102,12 @@ type ModalProps = {
 };
 
 function Modal({ open, title, subtitle, onClose, children }: ModalProps) {
-  if (!open) return null;
-  return (
-    <div className="dashboard-modal-layer" role="dialog" aria-modal="true" aria-label={title}>
-      <button type="button" className="dashboard-modal-backdrop" onClick={onClose} aria-label="Cerrar modal" />
-      <article className="dashboard-modal-panel dashboard-modal-panel--wide">
-        <header className="dashboard-modal-header">
-          <div>
-            {subtitle ? <p className="dashboard-modal-subtitle">{subtitle}</p> : null}
-            <h3 className="dashboard-modal-title">{title}</h3>
-          </div>
-          <button type="button" className="dashboard-modal-close" onClick={onClose}>
-            Cerrar
-          </button>
-        </header>
-        <div className="dashboard-modal-content">{children}</div>
-      </article>
-    </div>
-  );
+  return <DashboardModal open={open} title={title} subtitle={subtitle} onClose={onClose} wide>{children}</DashboardModal>;
 }
+
+const miniBtnBase = "inline-flex min-h-[28px] items-center justify-center rounded-full border border-hairline bg-soft-cloud px-2.5 text-[9px] font-black uppercase tracking-wider text-ink transition hover:border-info disabled:opacity-50 disabled:cursor-not-allowed";
+const miniBtnDanger = "inline-flex min-h-[28px] items-center justify-center rounded-full border border-sale/40 bg-sale/12 px-2.5 text-[9px] font-black uppercase tracking-wider text-sale-deep transition";
+const miniBtnActive = "inline-flex min-h-[28px] items-center justify-center rounded-full border border-info/40 bg-info/12 px-2.5 text-[9px] font-black uppercase tracking-wider text-charcoal transition";
 
 export function PermisosAuditoriaDashboardClient({
   audit,
@@ -367,9 +355,9 @@ export function PermisosAuditoriaDashboardClient({
   };
 
   return (
-    <main className="dashboard-modern-shell w-full px-4 py-6 sm:px-7 lg:px-12">
-      <section className="rounded-[20px] border border-(--border) bg-[rgba(255,255,255,.58)] p-4 sm:p-5">
-        <h1 className="text-[24px] font-black uppercase tracking-[0.04em] text-(--text) sm:text-[30px]">
+    <main className="rounded-md border border-hairline bg-soft-cloud/90 w-full px-4 py-6 sm:px-7 lg:px-12">
+      <section className="rounded-[20px] border border-hairline bg-[rgba(255,255,255,.58)] p-4 sm:p-5">
+        <h1 className="text-[24px] font-black uppercase tracking-[0.04em] text-ink sm:text-[30px]">
           Permisos y Auditoria
         </h1>
         <p className="mt-1 text-[12px] text-[rgba(8,10,13,.64)]">
@@ -383,43 +371,17 @@ export function PermisosAuditoriaDashboardClient({
       </section>
 
       <section className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
-        <article className="rounded-[18px] border border-(--border) bg-[rgba(255,255,255,.62)] p-3.5">
+        <article className="rounded-[18px] border border-hairline bg-[rgba(255,255,255,.62)] p-3.5">
           <header className="mb-3">
-            <h2 className="text-[12px] font-black uppercase tracking-[0.12em] text-(--text)">
+            <h2 className="text-[12px] font-black uppercase tracking-[0.12em] text-ink">
               Usuarios ({filteredAccounts.length})
             </h2>
           </header>
 
           <div className="grid gap-2 sm:grid-cols-3">
-            <input
-              value={userSearch}
-              onChange={(event) => setUserSearch(event.target.value)}
-              placeholder="Buscar por nombre, correo o rol"
-              className="h-9 rounded-[10px] border border-(--border) bg-white/88 px-3 text-[11px] sm:col-span-2"
-            />
-            <select
-              value={userStatusFilter}
-              onChange={(event) => setUserStatusFilter(event.target.value)}
-              className="h-9 rounded-[10px] border border-(--border) bg-white/88 px-3 text-[11px]"
-            >
-              <option value="all">Todos los estados</option>
-              <option value="ACTIVE">Activos</option>
-              <option value="BLOCKED">Bloqueados</option>
-              <option value="SUSPENDED">Suspendidos</option>
-              <option value="DISABLED">Deshabilitados</option>
-            </select>
-            <select
-              value={userRoleFilter}
-              onChange={(event) => setUserRoleFilter(event.target.value)}
-              className="h-9 rounded-[10px] border border-(--border) bg-white/88 px-3 text-[11px] sm:col-span-3"
-            >
-              <option value="all">Todos los roles</option>
-              {rolesCatalog.map((role) => (
-                <option key={role.code} value={role.code}>
-                  {role.name} ({role.code})
-                </option>
-              ))}
-            </select>
+            <TextField label="Búsqueda de usuarios" labelClassName="sr-only" value={userSearch} onChange={(event) => setUserSearch(event.target.value)} placeholder="Buscar por nombre, correo o rol" size="sm" wrapperClassName="sm:col-span-2" inputClassName="text-[11px]" />
+            <SelectField label="Estado de usuario" labelClassName="sr-only" value={userStatusFilter} onChange={(event) => setUserStatusFilter(event.target.value)} size="sm" options={[{ value: "all", label: "Todos los estados" }, { value: "ACTIVE", label: "Activos" }, { value: "BLOCKED", label: "Bloqueados" }, { value: "SUSPENDED", label: "Suspendidos" }, { value: "DISABLED", label: "Deshabilitados" }]} />
+            <SelectField label="Rol de usuario" labelClassName="sr-only" value={userRoleFilter} onChange={(event) => setUserRoleFilter(event.target.value)} size="sm" wrapperClassName="sm:col-span-3" options={[{ value: "all", label: "Todos los roles" }, ...rolesCatalog.map((role) => ({ value: role.code, label: `${role.name} (${role.code})` }))]} />
           </div>
 
           <div className="mt-3 max-h-[62vh] space-y-2 overflow-auto pr-1">
@@ -443,7 +405,7 @@ export function PermisosAuditoriaDashboardClient({
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <p className="truncate text-[11px] font-black uppercase tracking-[0.08em] text-(--text)">
+                          <p className="truncate text-[11px] font-black uppercase tracking-[0.08em] text-ink">
                             {accountName(account)}
                           </p>
                           <p className="truncate text-[11px] text-[rgba(8,10,13,.62)]">{accountSub(account)}</p>
@@ -475,14 +437,14 @@ export function PermisosAuditoriaDashboardClient({
                       <button
                         type="button"
                         onClick={() => setUserModalAccountId(account.account_id)}
-                        className="dashboard-mini-btn"
+                        className={miniBtnBase}
                       >
                         Ver usuario
                       </button>
                       <button
                         type="button"
                         onClick={() => void runStatusToggle(account)}
-                        className={`dashboard-mini-btn ${willBlock ? "dashboard-mini-btn--danger" : "dashboard-mini-btn--active"}`}
+                        className={willBlock ? miniBtnDanger : miniBtnActive}
                       >
                         {willBlock ? "Bloquear" : "Activar"}
                       </button>
@@ -498,9 +460,9 @@ export function PermisosAuditoriaDashboardClient({
           </div>
         </article>
 
-        <article className="rounded-[18px] border border-(--border) bg-[rgba(255,255,255,.62)] p-3.5">
+        <article className="rounded-[18px] border border-hairline bg-[rgba(255,255,255,.62)] p-3.5">
           <header>
-            <h2 className="text-[12px] font-black uppercase tracking-[0.12em] text-(--text)">
+            <h2 className="text-[12px] font-black uppercase tracking-[0.12em] text-ink">
               Gestion de acceso
             </h2>
           </header>
@@ -510,7 +472,7 @@ export function PermisosAuditoriaDashboardClient({
               <article className="rounded-[12px] border border-[rgba(8,10,13,.12)] bg-white/90 p-3">
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div>
-                    <p className="text-[13px] font-black uppercase tracking-[0.08em] text-(--text)">{accountName(selectedAccount)}</p>
+                    <p className="text-[13px] font-black uppercase tracking-[0.08em] text-ink">{accountName(selectedAccount)}</p>
                     <p className="text-[11px] text-[rgba(8,10,13,.62)]">{accountSub(selectedAccount)}</p>
                   </div>
                   <span
@@ -539,28 +501,18 @@ export function PermisosAuditoriaDashboardClient({
               <article className="rounded-[12px] border border-[rgba(8,10,13,.12)] bg-white/90 p-3">
                 <p className="text-[10px] font-black uppercase tracking-[0.1em] text-[rgba(8,10,13,.62)]">Cambiar roles</p>
                 <div className="mt-2 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
-                  <select
-                    value={effectiveRoleCode}
-                    onChange={(event) => setRoleCode(event.target.value)}
-                    className="h-9 rounded-[10px] border border-(--border) bg-white/90 px-3 text-[11px]"
-                  >
-                    {rolesCatalog.map((role) => (
-                      <option key={role.code} value={role.code}>
-                        {role.name} ({role.code})
-                      </option>
-                    ))}
-                  </select>
+                  <SelectField label="Rol" labelClassName="sr-only" value={effectiveRoleCode} onChange={(event) => setRoleCode(event.target.value)} size="sm" options={rolesCatalog.map((role) => ({ value: role.code, label: `${role.name} (${role.code})` }))} />
                   <button
                     type="button"
                     onClick={() => void runRoleAction("assign-role", actions.assignRoleAction)}
-                    className="dashboard-mini-btn dashboard-mini-btn--active"
+                    className={miniBtnActive}
                   >
                     Agregar
                   </button>
                   <button
                     type="button"
                     onClick={() => void runRoleAction("remove-role", actions.removeRoleAction)}
-                    className="dashboard-mini-btn"
+                    className={miniBtnBase}
                   >
                     Remover
                   </button>
@@ -574,74 +526,25 @@ export function PermisosAuditoriaDashboardClient({
                   Control por pantalla y accion
                 </p>
                 <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                  <select
-                    value={effectivePermissionKey}
-                    onChange={(event) => setPermissionKey(event.target.value)}
-                    className="h-9 rounded-[10px] border border-(--border) bg-white/90 px-3 text-[11px] sm:col-span-2"
-                  >
-                    {permissionsCatalog.map((permission) => {
-                      const value = `${permission.screen}:${permission.action}`;
-                      return (
-                        <option key={value} value={value}>
-                          {permission.screen} / {permission.action}
-                        </option>
-                      );
-                    })}
-                  </select>
-                  <select
-                    value={overrideEffect}
-                    onChange={(event) => setOverrideEffect(event.target.value === "deny" ? "deny" : "allow")}
-                    className="h-9 rounded-[10px] border border-(--border) bg-white/90 px-3 text-[11px]"
-                  >
-                    <option value="allow">allow</option>
-                    <option value="deny">deny</option>
-                  </select>
-                  <input
-                    value={overrideReason}
-                    onChange={(event) => setOverrideReason(event.target.value)}
-                    placeholder="Motivo (opcional)"
-                    className="h-9 rounded-[10px] border border-(--border) bg-white/90 px-3 text-[11px]"
-                  />
+                  <SelectField label="Permiso" labelClassName="sr-only" value={effectivePermissionKey} onChange={(event) => setPermissionKey(event.target.value)} size="sm" wrapperClassName="sm:col-span-2" options={permissionsCatalog.map((permission) => { const value = `${permission.screen}:${permission.action}`; return { value, label: `${permission.screen} / ${permission.action}` }; })} />
+                  <SelectField label="Efecto" labelClassName="sr-only" value={overrideEffect} onChange={(event) => setOverrideEffect(event.target.value === "deny" ? "deny" : "allow")} size="sm" options={[{ value: "allow", label: "allow" }, { value: "deny", label: "deny" }]} />
+                  <TextField label="Motivo" labelClassName="sr-only" value={overrideReason} onChange={(event) => setOverrideReason(event.target.value)} placeholder="Motivo (opcional)" size="sm" inputClassName="text-[11px]" />
                 </div>
                 <div className="mt-2 flex items-center gap-2">
                   <button
                     type="button"
                     onClick={() => void runOverrideAction("upsert-override", actions.upsertPermissionOverrideAction)}
-                    className="dashboard-mini-btn dashboard-mini-btn--active"
+                    className={miniBtnActive}
                   >
                     Aplicar override
                   </button>
                   <button
                     type="button"
                     onClick={() => void runOverrideAction("remove-override", actions.removePermissionOverrideAction)}
-                    className="dashboard-mini-btn"
+                    className={miniBtnBase}
                   >
                     Remover override
                   </button>
-                </div>
-                <FormErrorBag bag={errorBagByForm["upsert-override"] ?? null} className="mt-2" />
-                <FormErrorBag bag={errorBagByForm["remove-override"] ?? null} className="mt-2" />
-              </article>
-
-              <article className="rounded-[12px] border border-[rgba(8,10,13,.12)] bg-white/90 p-3">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-[10px] font-black uppercase tracking-[0.1em] text-[rgba(8,10,13,.62)]">Estado de usuario</p>
-                  <button
-                    type="button"
-                    onClick={() => void runStatusToggle(selectedAccount)}
-                    className={`dashboard-mini-btn ${
-                      toggleStatus(selectedAccount.status) === "BLOCKED" ? "dashboard-mini-btn--danger" : "dashboard-mini-btn--active"
-                    }`}
-                  >
-                    {toggleStatus(selectedAccount.status) === "BLOCKED" ? "Bloquear usuario" : "Activar usuario"}
-                  </button>
-                </div>
-                <FormErrorBag bag={errorBagByForm["set-status"] ?? null} className="mt-2" />
-              </article>
-
-              <article className="rounded-[12px] border border-[rgba(8,10,13,.12)] bg-white/90 p-3">
-                <p className="text-[10px] font-black uppercase tracking-[0.1em] text-[rgba(8,10,13,.62)]">Ultimas acciones del usuario</p>
-                <div className="mt-2 space-y-2">
                   {selectedUserAudit.length > 0 ? (
                     selectedUserAudit.map((item) => (
                       <button
@@ -651,7 +554,7 @@ export function PermisosAuditoriaDashboardClient({
                         className="w-full rounded-[10px] border border-[rgba(8,10,13,.12)] bg-white/88 p-2 text-left transition hover:border-[rgba(5,122,168,.36)]"
                       >
                         <div className="flex items-center justify-between gap-2">
-                          <p className="text-[10px] font-black uppercase tracking-[0.08em] text-(--text)">{item.action}</p>
+                          <p className="text-[10px] font-black uppercase tracking-[0.08em] text-ink">{item.action}</p>
                           <p className="text-[10px] text-[rgba(8,10,13,.6)]">{dt(item.created_at)}</p>
                         </div>
                         <p className="mt-0.5 text-[11px] text-[rgba(8,10,13,.66)]">{item.resource_type}</p>
@@ -671,105 +574,22 @@ export function PermisosAuditoriaDashboardClient({
         </article>
       </section>
 
-      <section className="mt-4 rounded-[18px] border border-(--border) bg-[rgba(255,255,255,.62)] p-3.5">
+      <section className="mt-4 rounded-[18px] border border-hairline bg-[rgba(255,255,255,.62)] p-3.5">
         <header className="mb-3">
-          <h2 className="text-[12px] font-black uppercase tracking-[0.12em] text-(--text)">Audit log ({filteredAudit.length})</h2>
+          <h2 className="text-[12px] font-black uppercase tracking-[0.12em] text-ink">Audit log ({filteredAudit.length})</h2>
         </header>
 
         <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-6">
-          <input
-            value={auditSearch}
-            onChange={(event) => {
-              setAuditSearch(event.target.value);
-              setAuditPage(1);
-            }}
-            placeholder="Buscar por usuario, accion, motivo o payload"
-            className="h-9 rounded-[10px] border border-(--border) bg-white/90 px-3 text-[11px] sm:col-span-2 xl:col-span-2"
-          />
-
-          <select
-            value={auditUserFilter}
-            onChange={(event) => {
-              setAuditUserFilter(event.target.value);
-              setAuditPage(1);
-            }}
-            className="h-9 rounded-[10px] border border-(--border) bg-white/90 px-3 text-[11px]"
-          >
-            <option value="all">Todos los usuarios</option>
-            {accounts.map((account) => (
-              <option key={`audit-user-${account.account_id}`} value={account.account_id}>
-                {accountName(account)}
-              </option>
-            ))}
-          </select>
-
-          <select
-            value={auditModuleFilter}
-            onChange={(event) => {
-              setAuditModuleFilter(event.target.value);
-              setAuditPage(1);
-            }}
-            className="h-9 rounded-[10px] border border-(--border) bg-white/90 px-3 text-[11px]"
-          >
-            <option value="all">Toda la app</option>
-            {auditModules.map((resource) => (
-              <option key={`resource-${resource}`} value={resource}>
-                {resource}
-              </option>
-            ))}
-          </select>
-
-          <select
-            value={auditActionFilter}
-            onChange={(event) => {
-              setAuditActionFilter(event.target.value);
-              setAuditPage(1);
-            }}
-            className="h-9 rounded-[10px] border border-(--border) bg-white/90 px-3 text-[11px]"
-          >
-            <option value="all">Todas las acciones</option>
-            {auditActions.map((action) => (
-              <option key={`action-${action}`} value={action}>
-                {action}
-              </option>
-            ))}
-          </select>
-
-          <select
-            value={auditRange}
-            onChange={(event) => {
-              setAuditRange(event.target.value as AuditRange);
-              setAuditPage(1);
-            }}
-            className="h-9 rounded-[10px] border border-(--border) bg-white/90 px-3 text-[11px]"
-          >
-            <option value="all">Todo el historico</option>
-            <option value="24h">Ultimas 24 horas</option>
-            <option value="7d">Ultimos 7 dias</option>
-            <option value="30d">Ultimos 30 dias</option>
-            <option value="custom">Rango personalizado</option>
-          </select>
+          <TextField label="Búsqueda de auditoría" labelClassName="sr-only" value={auditSearch} onChange={(event) => { setAuditSearch(event.target.value); setAuditPage(1); }} placeholder="Buscar por usuario, accion, motivo o payload" size="sm" wrapperClassName="sm:col-span-2 xl:col-span-2" inputClassName="text-[11px]" />
+          <SelectField label="Usuario" labelClassName="sr-only" value={auditUserFilter} onChange={(event) => { setAuditUserFilter(event.target.value); setAuditPage(1); }} size="sm" options={[{ value: "all", label: "Todos los usuarios" }, ...accounts.map((account) => ({ value: account.account_id, label: accountName(account) }))]} />
+          <SelectField label="Módulo" labelClassName="sr-only" value={auditModuleFilter} onChange={(event) => { setAuditModuleFilter(event.target.value); setAuditPage(1); }} size="sm" options={[{ value: "all", label: "Toda la app" }, ...auditModules.map((resource) => ({ value: resource, label: resource }))]} />
+          <SelectField label="Acción" labelClassName="sr-only" value={auditActionFilter} onChange={(event) => { setAuditActionFilter(event.target.value); setAuditPage(1); }} size="sm" options={[{ value: "all", label: "Todas las acciones" }, ...auditActions.map((action) => ({ value: action, label: action }))]} />
+          <SelectField label="Rango" labelClassName="sr-only" value={auditRange} onChange={(event) => { setAuditRange(event.target.value as AuditRange); setAuditPage(1); }} size="sm" options={[{ value: "all", label: "Todo el historico" }, { value: "24h", label: "Ultimas 24 horas" }, { value: "7d", label: "Ultimos 7 dias" }, { value: "30d", label: "Ultimos 30 dias" }, { value: "custom", label: "Rango personalizado" }]} />
 
           {auditRange === "custom" ? (
             <>
-              <input
-                type="datetime-local"
-                value={auditFrom}
-                onChange={(event) => {
-                  setAuditFrom(event.target.value);
-                  setAuditPage(1);
-                }}
-                className="h-9 rounded-[10px] border border-(--border) bg-white/90 px-3 text-[11px] xl:col-span-3"
-              />
-              <input
-                type="datetime-local"
-                value={auditTo}
-                onChange={(event) => {
-                  setAuditTo(event.target.value);
-                  setAuditPage(1);
-                }}
-                className="h-9 rounded-[10px] border border-(--border) bg-white/90 px-3 text-[11px] xl:col-span-2"
-              />
+              <TextField label="Desde" labelClassName="sr-only" type="datetime-local" value={auditFrom} onChange={(event) => { setAuditFrom(event.target.value); setAuditPage(1); }} size="sm" wrapperClassName="xl:col-span-3" inputClassName="text-[11px]" />
+              <TextField label="Hasta" labelClassName="sr-only" type="datetime-local" value={auditTo} onChange={(event) => { setAuditTo(event.target.value); setAuditPage(1); }} size="sm" wrapperClassName="xl:col-span-2" inputClassName="text-[11px]" />
             </>
           ) : null}
         </div>
@@ -778,20 +598,7 @@ export function PermisosAuditoriaDashboardClient({
           <p className="text-[11px] text-[rgba(8,10,13,.58)]">Click en cualquier registro para ver detalle completo.</p>
           <div className="flex items-center gap-2">
             <span className="text-[10px] font-black uppercase tracking-[0.08em] text-[rgba(8,10,13,.58)]">Por pagina</span>
-            <select
-              value={String(auditPageSize)}
-              onChange={(event) => {
-                setAuditPageSize(Number(event.target.value));
-                setAuditPage(1);
-              }}
-              className="h-8 rounded-[10px] border border-(--border) bg-white/90 px-2 text-[11px]"
-            >
-              {PAGE_SIZE_OPTIONS.map((size) => (
-                <option key={`size-${size}`} value={size}>
-                  {size}
-                </option>
-              ))}
-            </select>
+            <SelectField label="Tamaño de página" labelClassName="sr-only" value={String(auditPageSize)} onChange={(event) => { setAuditPageSize(Number(event.target.value)); setAuditPage(1); }} size="sm" options={PAGE_SIZE_OPTIONS.map((size) => ({ value: String(size), label: String(size) }))} wrapperClassName="w-20" />
           </div>
         </div>
 
@@ -807,7 +614,7 @@ export function PermisosAuditoriaDashboardClient({
                   className="rounded-[12px] border border-[rgba(8,10,13,.12)] bg-white/88 p-3 text-left transition hover:border-[rgba(5,122,168,.38)] hover:bg-[rgba(242,249,255,.92)]"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="text-[11px] font-black uppercase tracking-[0.09em] text-(--text)">{item.action}</p>
+                    <p className="text-[11px] font-black uppercase tracking-[0.09em] text-ink">{item.action}</p>
                     <p className="text-[10px] text-[rgba(8,10,13,.58)]">{dt(item.created_at)}</p>
                   </div>
                   <p className="mt-1 text-[12px] text-[rgba(8,10,13,.72)]">{actor ? accountName(actor) : item.actor_type}</p>
@@ -832,7 +639,7 @@ export function PermisosAuditoriaDashboardClient({
               type="button"
               onClick={() => setAuditPage(Math.max(1, currentAuditPage - 1))}
               disabled={currentAuditPage <= 1}
-              className="dashboard-mini-btn"
+              className={miniBtnBase}
             >
               Anterior
             </button>
@@ -840,7 +647,7 @@ export function PermisosAuditoriaDashboardClient({
               type="button"
               onClick={() => setAuditPage(Math.min(totalAuditPages, currentAuditPage + 1))}
               disabled={currentAuditPage >= totalAuditPages}
-              className="dashboard-mini-btn"
+              className={miniBtnBase}
             >
               Siguiente
             </button>
@@ -858,11 +665,11 @@ export function PermisosAuditoriaDashboardClient({
             <div className="grid gap-2 sm:grid-cols-3">
               <article className="rounded-[10px] border border-[rgba(8,10,13,.12)] bg-white/90 p-2.5">
                 <p className="text-[10px] font-black uppercase tracking-[0.09em] text-[rgba(8,10,13,.58)]">Estado</p>
-                <p className="mt-1 text-[15px] font-black text-(--text)">{statusLabel(userModalAccount.status)}</p>
+                <p className="mt-1 text-[15px] font-black text-ink">{statusLabel(userModalAccount.status)}</p>
               </article>
               <article className="rounded-[10px] border border-[rgba(8,10,13,.12)] bg-white/90 p-2.5">
                 <p className="text-[10px] font-black uppercase tracking-[0.09em] text-[rgba(8,10,13,.58)]">Actor</p>
-                <p className="mt-1 text-[15px] font-black text-(--text)">{userModalAccount.actor_type}</p>
+                <p className="mt-1 text-[15px] font-black text-ink">{userModalAccount.actor_type}</p>
               </article>
               <article className="rounded-[10px] border border-[rgba(8,10,13,.12)] bg-white/90 p-2.5">
                 <p className="text-[10px] font-black uppercase tracking-[0.09em] text-[rgba(8,10,13,.58)]">Ultimo acceso</p>
@@ -905,7 +712,7 @@ export function PermisosAuditoriaDashboardClient({
                       className="w-full rounded-[10px] border border-[rgba(8,10,13,.12)] bg-white/88 p-2 text-left transition hover:border-[rgba(5,122,168,.36)]"
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <p className="text-[10px] font-black uppercase tracking-[0.08em] text-(--text)">{item.action}</p>
+                        <p className="text-[10px] font-black uppercase tracking-[0.08em] text-ink">{item.action}</p>
                         <p className="text-[10px] text-[rgba(8,10,13,.58)]">{dt(item.created_at)}</p>
                       </div>
                       <p className="mt-0.5 text-[11px] text-[rgba(8,10,13,.66)]">{item.resource_type}</p>
@@ -932,18 +739,18 @@ export function PermisosAuditoriaDashboardClient({
             <div className="grid gap-2 sm:grid-cols-3">
               <article className="rounded-[10px] border border-[rgba(8,10,13,.12)] bg-white/90 p-2.5">
                 <p className="text-[10px] font-black uppercase tracking-[0.09em] text-[rgba(8,10,13,.58)]">Usuario</p>
-                <p className="mt-1 text-[12px] font-black text-(--text)">
+                <p className="mt-1 text-[12px] font-black text-ink">
                   {auditModalActor ? accountName(auditModalActor) : auditModalItem.actor_type}
                 </p>
                 <p className="mt-0.5 text-[10px] text-[rgba(8,10,13,.58)]">{auditModalActor?.primary_email || "Sin correo"}</p>
               </article>
               <article className="rounded-[10px] border border-[rgba(8,10,13,.12)] bg-white/90 p-2.5">
                 <p className="text-[10px] font-black uppercase tracking-[0.09em] text-[rgba(8,10,13,.58)]">Cuando</p>
-                <p className="mt-1 text-[12px] font-black text-(--text)">{dt(auditModalItem.created_at)}</p>
+                <p className="mt-1 text-[12px] font-black text-ink">{dt(auditModalItem.created_at)}</p>
               </article>
               <article className="rounded-[10px] border border-[rgba(8,10,13,.12)] bg-white/90 p-2.5">
                 <p className="text-[10px] font-black uppercase tracking-[0.09em] text-[rgba(8,10,13,.58)]">Modulo</p>
-                <p className="mt-1 text-[12px] font-black text-(--text)">{auditModalItem.resource_type}</p>
+                <p className="mt-1 text-[12px] font-black text-ink">{auditModalItem.resource_type}</p>
               </article>
             </div>
 

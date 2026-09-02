@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 
-import { Button, SelectField, type SelectOption } from "@/core/design-system";
+import { Button, Checkbox, DashboardModal, SelectField, TextField, type SelectOption } from "@/core/design-system";
 import { FormErrorBag } from "@/core/design-system/feedback/FormErrorBag";
 import {
   toFormErrorBag,
@@ -87,9 +87,6 @@ const CHECKLIST_STEPS: Array<{ key: ChecklistStepKey; label: string }> = [
   { key: "shipped", label: "ENVIADO" },
   { key: "delivered", label: "ENTREGADO" },
 ];
-
-const FIELD_CLASS =
-  "h-10 w-full rounded-[12px] border border-[rgba(8,10,13,.18)] bg-white/92 px-3 text-[12px] text-(--text) outline-none transition placeholder:text-[rgba(8,10,13,.46)] focus:border-[rgba(5,122,168,.44)] focus:bg-white focus-visible:ring-2 focus-visible:ring-[color:var(--saut-ring)]";
 
 function money(value: number): string {
   return value.toLocaleString("es-MX", {
@@ -208,7 +205,7 @@ function toneClass(tone: Tone): string {
     return "border-[rgba(189,132,16,.3)] bg-[rgba(189,132,16,.15)] text-[rgb(133,96,13)]";
   }
   if (tone === "blue") {
-    return "border-[rgba(5,122,168,.3)] bg-[rgba(5,122,168,.14)] text-(--saut-navy)";
+    return "border-[rgba(5,122,168,.3)] bg-[rgba(5,122,168,.14)] text-charcoal";
   }
   return "border-[rgba(8,10,13,.18)] bg-[rgba(255,255,255,.88)] text-[rgba(8,10,13,.72)]";
 }
@@ -309,7 +306,7 @@ function OrderItemDetailCard({
           )}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="line-clamp-2 text-[12px] font-black uppercase tracking-[0.08em] text-(--text)">
+          <p className="line-clamp-2 text-[12px] font-black uppercase tracking-[0.08em] text-ink">
             {visual?.title ?? lineItemLabel(item)}
           </p>
           {visual?.subtitle ? (
@@ -318,7 +315,7 @@ function OrderItemDetailCard({
           <p className="mt-1 text-[11px] text-[rgba(8,10,13,.72)]">{lineItemLabel(item)}</p>
           <p className="mt-1 text-[11px] text-[rgba(8,10,13,.72)]">
             {item.quantity} x ${money(item.unit_price_mxn)} ={" "}
-            <span className="font-black text-(--saut-navy)">${money(lineTotal)}</span>
+            <span className="font-black text-charcoal">${money(lineTotal)}</span>
           </p>
         </div>
       </div>
@@ -405,7 +402,7 @@ function OrderGridCard({
           <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[rgba(8,10,13,.56)]">
             Pedido
           </p>
-          <p className="truncate text-[12px] font-black text-(--text)">{order.email}</p>
+          <p className="truncate text-[12px] font-black text-ink">{order.email}</p>
           <p className="mt-0.5 text-[11px] text-[rgba(8,10,13,.66)]">
             {formatDateTime(order.created_at)}
           </p>
@@ -555,20 +552,15 @@ export function PedidosDashboardClient({
     ? orderItemById.get(selectedMermaWorkOrder.order_item_id)
     : undefined;
 
-  useEffect(() => {
-    setChecklistState(checklistStateFromWorkOrder(selectedChecklistWorkOrder));
-  }, [selectedChecklistWorkOrder]);
-
-  useEffect(() => {
-    if (!selectedOrder) return;
-    setSelectedOrderStatus((current) => {
-      const next = deriveOrderStatusFromChecklist(
-        checklistState,
-        selectedOrder.shipping_method
-      );
-      return current === next ? current : next;
+  const updateChecklistStep = (step: ChecklistStepKey, checked: boolean) => {
+    setChecklistState((current) => {
+      const next = applyChecklistToggle(current, step, checked);
+      if (selectedOrder) {
+        setSelectedOrderStatus(deriveOrderStatusFromChecklist(next, selectedOrder.shipping_method));
+      }
+      return next;
     });
-  }, [checklistState, selectedOrder]);
+  };
 
   const deliveredOrders = orders.filter((order) => order.status === "delivered").length;
   const failedOrders = orders.filter((order) => order.status === "failed").length;
@@ -676,9 +668,11 @@ export function PedidosDashboardClient({
 
   const openOrderOps = (orderId: string) => {
     const order = orderById.get(orderId);
+    const firstWorkOrder = workOrdersByOrderId[orderId]?.[0] ?? null;
     setSelectedOrderId(orderId);
 
     setSelectedOrderStatus(order?.status ?? "designed");
+    setChecklistState(checklistStateFromWorkOrder(firstWorkOrder));
     setOpsModalOpen(true);
   };
 
@@ -734,15 +728,15 @@ export function PedidosDashboardClient({
 
   return (
     <>
-      <main className="dashboard-modern-shell w-full px-4 py-5 sm:px-6 lg:px-8 xl:px-10">
-        <section className="dashboard-hero relative overflow-hidden rounded-[24px] border border-[rgba(18,47,92,.18)] p-5 sm:p-6">
-          <div className="dashboard-hero__shine" />
+      <main className="rounded-md border border-hairline bg-soft-cloud/90 w-full px-4 py-5 sm:px-6 lg:px-8 xl:px-10">
+        <section className="relative overflow-hidden rounded-md border border-hairline bg-soft-cloud p-5 sm:p-6">
+
           <div className="relative z-[1] grid gap-5 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,.9fr)] xl:items-end">
             <header>
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-(--saut-navy)">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-charcoal">
                 SAUT Staff - Pedidos
               </p>
-              <h1 className="mt-1 text-[24px] font-black uppercase tracking-[0.04em] text-(--text) sm:text-[30px]">
+              <h1 className="mt-1 text-[24px] font-black uppercase tracking-[0.04em] text-ink sm:text-[30px]">
                 Pedido y flujo del pedido
               </h1>
               <p className="mt-2 max-w-[72ch] text-[12px] text-[rgba(8,10,13,.68)]">
@@ -785,18 +779,7 @@ export function PedidosDashboardClient({
 
         <section className="mt-3 rounded-[16px] border border-[rgba(18,47,92,.14)] bg-[linear-gradient(180deg,rgba(255,255,255,.92),rgba(255,255,255,.8))] p-3 shadow-[0_8px_18px_rgba(18,47,92,.06)]">
           <div className="flex flex-wrap items-end gap-2 xl:flex-nowrap">
-            <div className="dashboard-field min-w-[220px] flex-[1.35]">
-              <label htmlFor="pedidos-filter-q" className="dashboard-field__label">
-                Búsqueda
-              </label>
-              <input
-                id="pedidos-filter-q"
-                value={queryFilter}
-                onChange={(event) => setQueryFilter(event.target.value)}
-                placeholder="correo, tracking, prenda"
-                className={FIELD_CLASS}
-              />
-            </div>
+            <TextField id="pedidos-filter-q" label="Búsqueda" size="sm" value={queryFilter} onChange={(event) => setQueryFilter(event.target.value)} placeholder="correo, tracking, prenda" wrapperClassName="min-w-[220px] flex-[1.35]" inputClassName="text-[11px]" />
             <div className="min-w-[170px] flex-1">
               <SelectField
                 id="pedidos-filter-status"
@@ -817,30 +800,8 @@ export function PedidosDashboardClient({
                 options={shippingFilterOptions}
               />
             </div>
-            <div className="dashboard-field min-w-[180px] flex-1">
-              <label htmlFor="pedidos-filter-from" className="dashboard-field__label">
-                Desde
-              </label>
-              <input
-                id="pedidos-filter-from"
-                type="datetime-local"
-                value={fromFilter}
-                onChange={(event) => setFromFilter(event.target.value)}
-                className={FIELD_CLASS}
-              />
-            </div>
-            <div className="dashboard-field min-w-[180px] flex-1">
-              <label htmlFor="pedidos-filter-to" className="dashboard-field__label">
-                Hasta
-              </label>
-              <input
-                id="pedidos-filter-to"
-                type="datetime-local"
-                value={toFilter}
-                onChange={(event) => setToFilter(event.target.value)}
-                className={FIELD_CLASS}
-              />
-            </div>
+            <TextField id="pedidos-filter-from" label="Desde" type="datetime-local" size="sm" value={fromFilter} onChange={(event) => setFromFilter(event.target.value)} wrapperClassName="min-w-[180px] flex-1" inputClassName="text-[11px]" />
+            <TextField id="pedidos-filter-to" label="Hasta" type="datetime-local" size="sm" value={toFilter} onChange={(event) => setToFilter(event.target.value)} wrapperClassName="min-w-[180px] flex-1" inputClassName="text-[11px]" />
             <div className="flex items-end">
               <Button type="button" size="sm" variant="ghost" shadow="none" onClick={resetFilters}>
                 Limpiar
@@ -855,7 +816,7 @@ export function PedidosDashboardClient({
               <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[rgba(8,10,13,.56)]">
                 Pedidos
               </p>
-              <h2 className="mt-1 text-[15px] font-black uppercase tracking-[0.08em] text-(--text)">
+              <h2 className="mt-1 text-[15px] font-black uppercase tracking-[0.08em] text-ink">
                 Haz clic en una tarjeta para abrir operaciones
               </h2>
             </div>
@@ -887,7 +848,7 @@ export function PedidosDashboardClient({
               <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[rgba(8,10,13,.56)]">
                 Skydropx (mock)
               </p>
-              <h2 className="mt-1 text-[15px] font-black uppercase tracking-[0.08em] text-(--text)">
+              <h2 className="mt-1 text-[15px] font-black uppercase tracking-[0.08em] text-ink">
                 Webhooks, alertas y monitoreo
               </h2>
               <p className="mt-1 text-[11px] text-[rgba(8,10,13,.66)]">
@@ -907,13 +868,13 @@ export function PedidosDashboardClient({
               <p className="text-[10px] font-black uppercase tracking-[0.08em] text-[rgba(8,10,13,.56)]">
                 Envío nacional
               </p>
-              <p className="mt-1 text-[12px] font-semibold text-(--text)">{nationalOrders} pedidos</p>
+              <p className="mt-1 text-[12px] font-semibold text-ink">{nationalOrders} pedidos</p>
             </article>
             <article className="rounded-[10px] border border-[rgba(8,10,13,.14)] bg-white/90 px-2.5 py-2">
               <p className="text-[10px] font-black uppercase tracking-[0.08em] text-[rgba(8,10,13,.56)]">
                 Tracking activo
               </p>
-              <p className="mt-1 text-[12px] font-semibold text-(--text)">{ordersWithTracking} pedidos</p>
+              <p className="mt-1 text-[12px] font-semibold text-ink">{ordersWithTracking} pedidos</p>
             </article>
           </div>
           <div className="mt-3 grid gap-2 md:grid-cols-2">
@@ -928,7 +889,7 @@ export function PedidosDashboardClient({
                     className="rounded-[8px] border border-[rgba(8,10,13,.12)] bg-[rgba(255,255,255,.92)] px-2 py-1.5 text-[11px]"
                   >
                     <div className="flex flex-wrap items-center justify-between gap-1">
-                      <span className="font-black uppercase tracking-[0.08em] text-(--text)">{hook.event}</span>
+                      <span className="font-black uppercase tracking-[0.08em] text-ink">{hook.event}</span>
                       <Badge label={hook.when} tone={hook.tone} />
                     </div>
                     <p className="mt-1 text-[rgba(8,10,13,.66)]">{hook.detail}</p>
@@ -957,24 +918,20 @@ export function PedidosDashboardClient({
 
       </main>
       {isOpsModalOpen && selectedOrder ? (
-        <div className="dashboard-modal-layer" role="dialog" aria-modal="true" aria-label="Detalle y operaciones de pedido">
-          <button type="button" className="dashboard-modal-backdrop" onClick={() => setOpsModalOpen(false)} aria-label="Cerrar modal" />
-          <article className="dashboard-modal-panel dashboard-modal-panel--wide !w-[min(98vw,1860px)] !max-h-[96dvh]">
-            <header className="dashboard-modal-header">
-              <div>
-                <p className="dashboard-modal-subtitle">Pedido y flujo del pedido</p>
-                <h3 className="dashboard-modal-title">{selectedOrder.email}</h3>
-              </div>
-              <button type="button" className="dashboard-modal-close" onClick={() => setOpsModalOpen(false)}>
-                Cerrar
-              </button>
-            </header>
-            <div className="dashboard-modal-content">
+        <DashboardModal
+          open
+          title={selectedOrder.email}
+          subtitle="Pedido y flujo del pedido"
+          onClose={() => setOpsModalOpen(false)}
+          wide
+          className="!w-[min(98vw,1860px)] !max-h-[96dvh]"
+        >
+            <div className="grid gap-3">
               <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-                <article className="rounded-[10px] border border-[rgba(8,10,13,.14)] bg-white/90 px-2.5 py-2"><p className="text-[10px] font-black uppercase tracking-[0.08em] text-[rgba(8,10,13,.56)]">Cliente</p><p className="mt-1 truncate text-[12px] font-semibold text-(--text)">{selectedOrder.email}</p></article>
-                <article className="rounded-[10px] border border-[rgba(8,10,13,.14)] bg-white/90 px-2.5 py-2"><p className="text-[10px] font-black uppercase tracking-[0.08em] text-[rgba(8,10,13,.56)]">Estado</p><p className="mt-1 text-[12px] font-semibold text-(--text)">{statusLabel(selectedOrder.status)}</p></article>
-                <article className="rounded-[10px] border border-[rgba(8,10,13,.14)] bg-white/90 px-2.5 py-2"><p className="text-[10px] font-black uppercase tracking-[0.08em] text-[rgba(8,10,13,.56)]">Fecha</p><p className="mt-1 text-[12px] font-semibold text-(--text)">{formatDateTime(selectedOrder.created_at)}</p></article>
-                <article className="rounded-[10px] border border-[rgba(8,10,13,.14)] bg-white/90 px-2.5 py-2"><p className="text-[10px] font-black uppercase tracking-[0.08em] text-[rgba(8,10,13,.56)]">Total</p><p className="mt-1 text-[12px] font-semibold text-(--saut-navy)">${money(selectedOrder.total_mxn)}</p></article>
+                <article className="rounded-[10px] border border-[rgba(8,10,13,.14)] bg-white/90 px-2.5 py-2"><p className="text-[10px] font-black uppercase tracking-[0.08em] text-[rgba(8,10,13,.56)]">Cliente</p><p className="mt-1 truncate text-[12px] font-semibold text-ink">{selectedOrder.email}</p></article>
+                <article className="rounded-[10px] border border-[rgba(8,10,13,.14)] bg-white/90 px-2.5 py-2"><p className="text-[10px] font-black uppercase tracking-[0.08em] text-[rgba(8,10,13,.56)]">Estado</p><p className="mt-1 text-[12px] font-semibold text-ink">{statusLabel(selectedOrder.status)}</p></article>
+                <article className="rounded-[10px] border border-[rgba(8,10,13,.14)] bg-white/90 px-2.5 py-2"><p className="text-[10px] font-black uppercase tracking-[0.08em] text-[rgba(8,10,13,.56)]">Fecha</p><p className="mt-1 text-[12px] font-semibold text-ink">{formatDateTime(selectedOrder.created_at)}</p></article>
+                <article className="rounded-[10px] border border-[rgba(8,10,13,.14)] bg-white/90 px-2.5 py-2"><p className="text-[10px] font-black uppercase tracking-[0.08em] text-[rgba(8,10,13,.56)]">Total</p><p className="mt-1 text-[12px] font-semibold text-charcoal">${money(selectedOrder.total_mxn)}</p></article>
               </div>
 
               <div className="mt-3 grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
@@ -996,7 +953,7 @@ export function PedidosDashboardClient({
                       <p className="mt-1">Total ${money(selectedOrder.total_mxn)}</p>
                     </div>
                     <SelectField id="order-status-value" name="status" required label="Nuevo estado" size="sm" value={selectedOrderStatus} onChange={(event) => setSelectedOrderStatus(event.target.value)} options={ORDER_STATUS_OPTIONS} />
-                    <div className="dashboard-field"><label htmlFor="order-status-reason" className="dashboard-field__label">Motivo</label><input id="order-status-reason" name="reason" placeholder="Motivo (opcional)" className={FIELD_CLASS} /></div>
+                    <TextField id="order-status-reason" name="reason" label="Motivo" size="sm" placeholder="Motivo (opcional)" inputClassName="text-[12px]" />
                     <Button type="submit" size="sm" variant="blue" shadow="none">Actualizar estado</Button>
                   </form>
                 </article>
@@ -1020,23 +977,10 @@ export function PedidosDashboardClient({
                     )}
                     <div className="grid gap-2 sm:grid-cols-2">
                       {CHECKLIST_STEPS.map((step) => (
-                        <label key={step.key} className="flex items-center gap-2 rounded-[10px] border border-[rgba(8,10,13,.14)] bg-white/84 px-2.5 py-2 text-[11px] font-semibold">
-                          <input
-                            type="checkbox"
-                            name={step.key}
-                            checked={checklistState[step.key]}
-                            onChange={(event) =>
-                              setChecklistState((current) =>
-                                applyChecklistToggle(current, step.key, event.target.checked)
-                              )
-                            }
-                            className="h-4 w-4 rounded accent-[var(--saut-yellow)]"
-                          />
-                          <span>{step.label}</span>
-                        </label>
+                        <Checkbox key={step.key} name={step.key} value="true" checked={checklistState[step.key]} onChange={(event) => updateChecklistStep(step.key, event.target.checked)} label={step.label} wrapperClassName="rounded-[10px] border border-[rgba(8,10,13,.14)] bg-white/84 px-2.5 py-2 text-[11px] font-semibold" />
                       ))}
                     </div>
-                    <div className="dashboard-field"><label htmlFor="work-order-checklist-reason" className="dashboard-field__label">Motivo</label><input id="work-order-checklist-reason" name="reason" placeholder="Motivo (opcional)" className={FIELD_CLASS} /></div>
+                    <TextField id="work-order-checklist-reason" name="reason" label="Motivo" size="sm" placeholder="Motivo (opcional)" inputClassName="text-[12px]" />
                     <Button type="submit" size="sm" variant="primary" shadow="none" fullWidth disabled={!resolvedSelectedChecklistWorkOrderId}>Actualizar flujo</Button>
                   </form>
                 </article>
@@ -1056,17 +1000,16 @@ export function PedidosDashboardClient({
                     ) : (
                       <p className="rounded-[10px] border border-[rgba(8,10,13,.14)] bg-white/84 px-3 py-2 text-[11px] text-[rgba(8,10,13,.62)]">No hay flujo del pedido disponible.</p>
                     )}
-                    <div className="dashboard-field"><label htmlFor="register-merma-reason-code" className="dashboard-field__label">Reason code</label><input id="register-merma-reason-code" name="reason_code" required placeholder="reason_code (ej: dtf_failed)" className={FIELD_CLASS} /></div>
+                    <TextField id="register-merma-reason-code" name="reason_code" label="Reason code" size="sm" required placeholder="reason_code (ej: dtf_failed)" inputClassName="text-[12px]" />
                     <p className="rounded-[10px] border border-[rgba(8,10,13,.14)] bg-white/84 px-3 py-2 text-[11px] text-[rgba(8,10,13,.66)]">{MERMA_REASON_CODE_TIP}</p>
-                    <div className="dashboard-field"><label htmlFor="register-merma-quantity" className="dashboard-field__label">Cantidad</label><input id="register-merma-quantity" name="quantity" type="number" min={1} required placeholder="Cantidad" className={FIELD_CLASS} /></div>
-                    <div className="dashboard-field"><label htmlFor="register-merma-notes" className="dashboard-field__label">Notas</label><input id="register-merma-notes" name="notes" placeholder="Notas" className={FIELD_CLASS} /></div>
+                    <TextField id="register-merma-quantity" name="quantity" label="Cantidad" size="sm" type="number" min={1} required placeholder="Cantidad" inputClassName="text-[12px]" />
+                    <TextField id="register-merma-notes" name="notes" label="Notas" size="sm" placeholder="Notas" inputClassName="text-[12px]" />
                     <Button type="submit" size="sm" variant="danger" shadow="none" fullWidth disabled={!resolvedSelectedMermaWorkOrderId}>Guardar merma</Button>
                   </form>
                 </article>
               </section>
             </div>
-          </article>
-        </div>
+        </DashboardModal>
       ) : null}
     </>
   );

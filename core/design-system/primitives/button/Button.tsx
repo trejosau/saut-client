@@ -6,12 +6,14 @@ import type { CssVars } from "../css-vars";
 
 export type ButtonVariant =
     | "primary"
+    | "secondary"
     | "blue"
     | "navy"
     | "danger"
     | "wine"
     | "ghost"
-    | "outline";
+    | "outline"
+    | "link";
 
 export type ButtonSize = "fit" | "sm" | "md" | "lg" | "xl" | "icon" | "pill";
 export type ButtonShadow = "soft" | "none";
@@ -62,7 +64,7 @@ const base =
     "transition-[box-shadow,filter,background-color] duration-150 ease-out " +
     "focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-[3px] focus-visible:outline-[var(--btn-ring)] " +
     "disabled:pointer-events-none disabled:opacity-60 " +
-    "[--btn-shadow:rgba(0,0,0,.28)] [--btn-ring:var(--saut-ring)]";
+    "[--btn-shadow:rgba(0,0,0,.28)] [--btn-ring:var(--color-info)]";
 
 const capsOn = "uppercase tracking-[0.12em]";
 const capsOff = "normal-case tracking-normal";
@@ -78,19 +80,22 @@ const sizes: Record<ButtonSize, string> = {
 };
 
 const variants: Record<ButtonVariant, string> = {
-    primary: "bg-[var(--saut-yellow)] text-[var(--saut-black)]",
-    blue: "bg-[var(--saut-blue)] text-[#f4fbff]",
-    navy: "bg-[var(--saut-navy)] text-[#f4fbff]",
-    danger: "bg-[var(--saut-red)] text-[#fff3f6]",
-    wine: "bg-[var(--saut-wine)] text-[#fff3f6]",
+    primary: "bg-primary text-ink hover:bg-primary/90",
+    secondary: "bg-soft-cloud text-ink border border-hairline hover:bg-soft-cloud/80",
+    blue: "bg-info text-soft-cloud hover:bg-info/90",
+    navy: "bg-charcoal text-soft-cloud hover:bg-charcoal/90",
+    danger: "bg-sale text-soft-cloud hover:bg-sale/90",
+    wine: "bg-sale-deep text-soft-cloud hover:bg-sale-deep/90",
 
     ghost:
-        "bg-[rgba(255,255,255,.45)] text-[var(--saut-black)] " +
-        "hover:bg-[rgba(255,255,255,.55)] active:bg-[rgba(255,255,255,.50)]",
+        "bg-transparent text-ink " +
+        "hover:bg-soft-cloud/60 active:bg-soft-cloud/40",
 
     outline:
-        "bg-transparent text-[var(--saut-black)] border-2 border-[rgba(0,0,0,.20)] " +
-        "hover:bg-[rgba(255,255,255,.35)] active:bg-[rgba(255,255,255,.25)]",
+        "bg-transparent text-ink border-2 border-hairline " +
+        "hover:bg-soft-cloud/50 active:bg-soft-cloud/30",
+
+    link: "bg-transparent text-info shadow-none underline underline-offset-4 hover:brightness-90",
 };
 
 /**

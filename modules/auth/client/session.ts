@@ -1,5 +1,8 @@
 "use client";
 
+import { ApiError } from "@/core/lib/api/errors";
+import { requestJson } from "@/core/lib/api/fetcher";
+
 type PendingLogin = {
   email: string;
   delivery: string;
@@ -129,7 +132,7 @@ export function getSession(): AuthSession | null {
 
 export function clearSession() {
   if (!isBrowser) return;
-  void fetch("/api/auth/logout", {
+  void requestJson<unknown>("/api/auth/logout", {
     method: "POST",
     credentials: "same-origin",
     keepalive: true,
@@ -161,30 +164,18 @@ export async function syncServerSession(input: {
 }) {
   if (!isBrowser) return;
 
-  const response = await fetch("/api/auth/login", {
+  await requestJson<unknown>("/api/auth/login", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
     credentials: "same-origin",
-    body: JSON.stringify({
+    json: {
       account_id: input.account_id,
       session_id: input.session_id,
       access_token: input.access_token,
       refresh_token: input.refresh_token,
       actor_type: normalizeActorType(input.actor_type),
       expires_in_sec: input.expires_in_sec,
-    }),
+    },
   });
-
-  if (!response.ok) {
-    let message = "No se pudo sincronizar la sesion segura.";
-    try {
-      const payload = (await response.json()) as { error?: string };
-      if (payload?.error) message = payload.error;
-    } catch {
-      // ignore parse errors
-    }
-    throw new Error(message);
-  }
 }
 
 type ServerSessionSnapshot = {
@@ -207,21 +198,20 @@ export async function syncSessionFromServer(force = false) {
   }
 
   inFlightSessionSync = (async () => {
-    const response = await fetch("/api/auth/session", {
-      method: "GET",
-      cache: "no-store",
-      credentials: "same-origin",
-    });
-
-    if (response.status === 401) {
-      clearClientSessionStorage();
-      return;
+    let payload: ServerSessionSnapshot;
+    try {
+      payload = await requestJson<ServerSessionSnapshot>("/api/auth/session", {
+        method: "GET",
+        cache: "no-store",
+        credentials: "same-origin",
+      });
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        clearClientSessionStorage();
+        return;
+      }
+      throw error;
     }
-    if (!response.ok) {
-      throw new Error("No se pudo sincronizar la sesion.");
-    }
-
-    const payload = (await response.json()) as ServerSessionSnapshot;
     const accountId = String(payload.account_id ?? "").trim();
     const sessionId = String(payload.session_id ?? "").trim();
     const expiresInSec = Number(payload.expires_in_sec ?? 0);

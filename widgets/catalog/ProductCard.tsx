@@ -91,8 +91,10 @@ export default function ProductCard({ product, onAdd, className }: Props) {
     const [previewVariantId, setPreviewVariantId] = React.useState<string | null>(null);
 
     React.useEffect(() => {
-        setSelectedVariantId(product.variants?.[0]?.id ?? null);
-        setPreviewVariantId(null);
+        queueMicrotask(() => {
+            setSelectedVariantId(product.variants?.[0]?.id ?? null);
+            setPreviewVariantId(null);
+        });
     }, [product.id, product.variants]);
 
     const selectedVariant = variants.find((variant) => variant.id === selectedVariantId) ?? variants[0];

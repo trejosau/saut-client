@@ -1,3 +1,6 @@
+import { buildApiUrl } from "@/core/lib/api/endpoints";
+import { requestJson } from "@/core/lib/api/fetcher";
+
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ??
   process.env.API_BASE_URL ??
@@ -28,12 +31,9 @@ export async function emitCustomizerEvent(input: CustomizerEventInput) {
   }
 
   try {
-    await fetch(`${API_BASE_URL}/analytics/customizer/events`, {
+    await requestJson<unknown>(buildApiUrl("/analytics/customizer/events", undefined, API_BASE_URL), {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(body),
+      json: body,
       cache: "no-store",
       keepalive: true,
     });

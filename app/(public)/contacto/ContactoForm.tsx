@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
 
+import { Button, FileUpload, TextAreaField, TextField } from "@/core/design-system";
 import { FormErrorBag } from "@/core/design-system/feedback/FormErrorBag";
 import { toFormErrorBag, type FormErrorBag as FormErrorBagState } from "@/core/design-system/feedback/form-errors";
 import { useToast } from "@/core/design-system/feedback/ToastHost";
@@ -44,96 +45,83 @@ export function ContactoForm({ action, inputClassName, labelClassName }: Contact
     <form
       onSubmit={handleSubmit}
       aria-busy={isSubmitting}
-      className="rounded-[8px] border border-(--border) bg-white p-5 shadow-[0_18px_40px_rgba(8,10,13,.08)] sm:p-7"
+      className="rounded-[8px] border border-hairline bg-white p-5 shadow-[0_18px_40px_rgba(8,10,13,.08)] sm:p-7"
     >
       <div className="grid gap-4">
         <FormErrorBag bag={errorBag} />
-        <div>
-          <label htmlFor="contact-email" className={labelClassName}>
-            Correo electrónico
-          </label>
-          <input
+        <TextField
             id="contact-email"
             name="email"
             type="email"
+            label="Correo electrÃ³nico"
+            labelClassName={labelClassName}
             required
             autoComplete="email"
             placeholder="tu@email.com"
-            className={inputClassName}
-          />
-        </div>
+            shellClassName={inputClassName}
+            inputClassName="text-base"
+        />
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <label htmlFor="contact-name" className={labelClassName}>
-              Nombre
-            </label>
-            <input
+          <TextField
               id="contact-name"
               name="name"
               type="text"
+              label="Nombre"
+              labelClassName={labelClassName}
               autoComplete="name"
               placeholder="Tu nombre"
-              className={inputClassName}
-            />
-          </div>
+              shellClassName={inputClassName}
+              inputClassName="text-base"
+          />
 
-          <div>
-            <label htmlFor="contact-phone" className={labelClassName}>
-              Número (opcional)
-            </label>
-            <input
+          <TextField
               id="contact-phone"
               name="phone"
               type="tel"
+              label="NÃºmero (opcional)"
+              labelClassName={labelClassName}
               autoComplete="tel"
               placeholder="+52 000 000 0000"
-              className={inputClassName}
-            />
-          </div>
+              shellClassName={inputClassName}
+              inputClassName="text-base"
+          />
         </div>
 
-        <div>
-          <label htmlFor="contact-message" className={labelClassName}>
-            Mensaje
-          </label>
-          <textarea
+        <TextAreaField
             id="contact-message"
             name="message"
+            label="Mensaje"
+            labelClassName={labelClassName}
             required
             rows={5}
-            placeholder="Escribe aquí tu mensaje..."
-            className={inputClassName}
-          />
-        </div>
+            placeholder="Escribe aquÃ­ tu mensaje..."
+            shellClassName={inputClassName}
+            textareaClassName="text-base"
+        />
 
-        <div>
-          <label htmlFor="contact-images" className={labelClassName}>
-            Imágenes (opcional)
-          </label>
-          <input
+        <FileUpload
             id="contact-images"
             name="images"
-            type="file"
-            accept="image/*"
+            label="ImÃ¡genes (opcional)"
+            labelClassName={labelClassName}
+            acceptedTypes={["image/*"]}
             multiple
-            className="mt-2 block min-h-12 w-full rounded-[6px] border border-(--border) bg-(--surface-2) px-3 py-2 text-sm text-(--muted) file:mr-3 file:rounded-[5px] file:border file:border-(--saut-black) file:bg-(--saut-yellow) file:px-3 file:py-2 file:text-[10px] file:font-black file:uppercase file:text-(--saut-black) hover:file:bg-(--saut-blue) hover:file:text-white"
-          />
-          <p className="mt-2 text-[11px] text-(--muted)">
-            Formatos recomendados: JPG, PNG o WEBP.
-          </p>
-        </div>
+            description="Formatos recomendados: JPG, PNG o WEBP."
+            className="mt-2"
+        />
 
         <div className="mt-1 flex flex-wrap items-center gap-3">
-          <button
+          <Button
             type="submit"
             disabled={isSubmitting}
-            className="saut-button saut-button--primary disabled:cursor-wait disabled:opacity-60"
+            isLoading={isSubmitting}
+            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-ink bg-primary px-6 text-xs font-black uppercase text-ink transition hover:bg-primary/90 disabled:cursor-wait disabled:opacity-60"
           >
             {isSubmitting ? "Enviando..." : "Enviar mensaje"}
-          </button>
-          <p className="text-[11px] text-(--muted)">
-            Número e imágenes son opcionales.
+          </Button>
+          <p className="text-[11px] text-mute">
+            NÃºmero e imÃ¡genes son opcionales.
           </p>
         </div>
       </div>

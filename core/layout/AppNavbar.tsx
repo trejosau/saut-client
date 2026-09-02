@@ -33,7 +33,7 @@ type AppNavbarProps = {
 
 const navLinks = [
     { href: "/", label: "Inicio" },
-    { href: "/catalogo", label: "Catálogo" },
+    { href: "/catalogo", label: "CatÃ¡logo" },
     { href: "/personalizar", label: "Personaliza" },
     { href: "/sobre-nosotros", label: "La marca" },
     { href: "/contacto", label: "Contacto" },
@@ -96,8 +96,10 @@ export function AppNavbar({ onLoginRequested }: AppNavbarProps) {
     );
 
     React.useEffect(() => {
-        setMobileOpen(false);
-        setProfileOpen(false);
+        queueMicrotask(() => {
+            setMobileOpen(false);
+            setProfileOpen(false);
+        });
     }, [pathname, searchParams]);
 
     React.useEffect(() => {
@@ -146,10 +148,10 @@ export function AppNavbar({ onLoginRequested }: AppNavbarProps) {
     };
 
     const iconButton =
-        "relative inline-flex h-11 w-11 items-center justify-center rounded-[8px] border border-transparent text-(--saut-black) transition-colors hover:border-(--border) hover:bg-(--surface-3)";
+        "relative inline-flex h-11 w-11 items-center justify-center rounded-[8px] border border-transparent text-ink transition-colors hover:border-hairline hover:bg-hairline-soft";
 
     return (
-        <nav ref={rootRef} aria-label="Navegación principal" className="relative bg-(--surface-2)">
+        <nav ref={rootRef} aria-label="NavegaciÃ³n principal" className="relative bg-soft-cloud">
             <div className="saut-container flex h-[72px] items-center gap-4">
                 <Link href="/" aria-label="SAUT, ir al inicio" className="shrink-0">
                     <Image
@@ -170,10 +172,10 @@ export function AppNavbar({ onLoginRequested }: AppNavbarProps) {
                             aria-current={isActive(link.href) ? "page" : undefined}
                             className={[
                                 "relative inline-flex h-11 items-center px-3 text-[13px] font-extrabold uppercase transition-colors",
-                                "after:absolute after:inset-x-3 after:bottom-1 after:h-[3px] after:origin-left after:bg-(--saut-yellow) after:transition-transform",
+                                "after:absolute after:inset-x-3 after:bottom-1 after:h-[3px] after:origin-left after:bg-primary after:transition-transform",
                                 isActive(link.href)
-                                    ? "text-(--saut-navy) after:scale-x-100"
-                                    : "text-[rgba(8,10,13,.72)] after:scale-x-0 hover:text-(--saut-black) hover:after:scale-x-100",
+                                    ? "text-charcoal after:scale-x-100"
+                                    : "text-[rgba(8,10,13,.72)] after:scale-x-0 hover:text-ink hover:after:scale-x-100",
                             ].join(" ")}
                         >
                             {link.label}
@@ -192,7 +194,7 @@ export function AppNavbar({ onLoginRequested }: AppNavbarProps) {
                         <button
                             type="button"
                             onClick={openProfile}
-                            aria-label={loggedIn ? "Abrir perfil" : "Iniciar sesión"}
+                            aria-label={loggedIn ? "Abrir perfil" : "Iniciar sesiÃ³n"}
                             aria-haspopup={loggedIn ? "menu" : "dialog"}
                             aria-expanded={loggedIn ? profileOpen : undefined}
                             className={iconButton}
@@ -205,7 +207,7 @@ export function AppNavbar({ onLoginRequested }: AppNavbarProps) {
                                 role="menu"
                                 aria-label="Cuenta"
                                 className={[
-                                    "absolute right-0 top-[calc(100%+10px)] z-50 w-56 border border-(--border) bg-white p-2 shadow-[0_18px_50px_rgba(8,10,13,.16)] transition",
+                                    "absolute right-0 top-[calc(100%+10px)] z-50 w-56 border border-hairline bg-white p-2 shadow-[0_18px_50px_rgba(8,10,13,.16)] transition",
                                     profileOpen
                                         ? "visible translate-y-0 opacity-100"
                                         : "invisible -translate-y-1 opacity-0",
@@ -214,15 +216,15 @@ export function AppNavbar({ onLoginRequested }: AppNavbarProps) {
                                 <Link
                                     role="menuitem"
                                     href="/mis-ordenes"
-                                    className="flex min-h-11 items-center gap-3 px-3 text-sm font-bold hover:bg-(--surface-3)"
+                                    className="flex min-h-11 items-center gap-3 px-3 text-sm font-bold hover:bg-hairline-soft"
                                 >
-                                    <Package size={18} /> Mis órdenes
+                                    <Package size={18} /> Mis Ã³rdenes
                                 </Link>
                                 {isAdmin ? (
                                     <Link
                                         role="menuitem"
                                         href="/dashboard"
-                                        className="flex min-h-11 items-center gap-3 px-3 text-sm font-bold hover:bg-(--surface-3)"
+                                        className="flex min-h-11 items-center gap-3 px-3 text-sm font-bold hover:bg-hairline-soft"
                                     >
                                         <LayoutDashboard size={18} /> Dashboard
                                     </Link>
@@ -231,9 +233,9 @@ export function AppNavbar({ onLoginRequested }: AppNavbarProps) {
                                     type="button"
                                     role="menuitem"
                                     onClick={logout}
-                                    className="flex min-h-11 w-full items-center gap-3 border-t border-(--border) px-3 text-left text-sm font-bold text-(--saut-wine) hover:bg-red-50"
+                                    className="flex min-h-11 w-full items-center gap-3 border-t border-hairline px-3 text-left text-sm font-bold text-sale-deep hover:bg-red-50"
                                 >
-                                    <LogOut size={18} /> Cerrar sesión
+                                    <LogOut size={18} /> Cerrar sesiÃ³n
                                 </button>
                             </div>
                         ) : null}
@@ -247,7 +249,7 @@ export function AppNavbar({ onLoginRequested }: AppNavbarProps) {
                     >
                         <ShoppingBag size={22} strokeWidth={1.9} />
                         {visibleItemCount > 0 ? (
-                            <span className="absolute right-0 top-0 grid min-h-5 min-w-5 place-items-center rounded-full bg-(--saut-yellow) px-1 text-[10px] font-black text-(--saut-black)">
+                            <span className="absolute right-0 top-0 grid min-h-5 min-w-5 place-items-center rounded-full bg-primary px-1 text-[10px] font-black text-ink">
                                 {visibleItemCount > 99 ? "99+" : visibleItemCount}
                             </span>
                         ) : null}
@@ -259,7 +261,7 @@ export function AppNavbar({ onLoginRequested }: AppNavbarProps) {
                             setMobileOpen((current) => !current);
                             setProfileOpen(false);
                         }}
-                        aria-label={mobileOpen ? "Cerrar menú" : "Abrir menú"}
+                        aria-label={mobileOpen ? "Cerrar menÃº" : "Abrir menÃº"}
                         aria-expanded={mobileOpen}
                         className={`${iconButton} lg:hidden`}
                     >
@@ -270,7 +272,7 @@ export function AppNavbar({ onLoginRequested }: AppNavbarProps) {
 
             <div
                 className={[
-                    "absolute inset-x-0 top-full z-40 border-y border-(--border) bg-white shadow-[0_18px_40px_rgba(8,10,13,.14)] transition lg:hidden",
+                    "absolute inset-x-0 top-full z-40 border-y border-hairline bg-white shadow-[0_18px_40px_rgba(8,10,13,.14)] transition lg:hidden",
                     mobileOpen
                         ? "visible translate-y-0 opacity-100"
                         : "invisible -translate-y-2 opacity-0",
@@ -283,8 +285,8 @@ export function AppNavbar({ onLoginRequested }: AppNavbarProps) {
                             href={link.href}
                             aria-current={isActive(link.href) ? "page" : undefined}
                             className={[
-                                "flex min-h-12 items-center border-b border-(--border) px-2 text-sm font-extrabold uppercase",
-                                isActive(link.href) ? "text-(--saut-blue)" : "text-(--saut-black)",
+                                "flex min-h-12 items-center border-b border-hairline px-2 text-sm font-extrabold uppercase",
+                                isActive(link.href) ? "text-info" : "text-ink",
                             ].join(" ")}
                         >
                             {link.label}
@@ -294,7 +296,7 @@ export function AppNavbar({ onLoginRequested }: AppNavbarProps) {
             </div>
 
             {isCatalogRoute ? (
-                <div className="border-t border-(--border) bg-white">
+                <div className="border-t border-hairline bg-white">
                     <div className="saut-container overflow-x-auto py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                         <div className="flex w-max min-w-full items-center gap-1.5">
                             <Link
@@ -303,8 +305,8 @@ export function AppNavbar({ onLoginRequested }: AppNavbarProps) {
                                 className={[
                                     "inline-flex min-h-11 items-center whitespace-nowrap rounded-[6px] px-3 text-xs font-extrabold uppercase transition-colors",
                                     activeCategory === "all"
-                                        ? "bg-(--saut-navy) text-white"
-                                        : "bg-(--surface-3) text-(--saut-black) hover:bg-(--saut-yellow)",
+                                        ? "bg-charcoal text-white"
+                                        : "bg-hairline-soft text-ink hover:bg-primary",
                                 ].join(" ")}
                             >
                                 Todo
@@ -319,8 +321,8 @@ export function AppNavbar({ onLoginRequested }: AppNavbarProps) {
                                         className={[
                                             "inline-flex min-h-11 items-center whitespace-nowrap rounded-[6px] px-3 text-xs font-extrabold uppercase transition-colors",
                                             active
-                                                ? "bg-(--saut-navy) text-white"
-                                                : "bg-(--surface-3) text-(--saut-black) hover:bg-(--saut-yellow)",
+                                                ? "bg-charcoal text-white"
+                                                : "bg-hairline-soft text-ink hover:bg-primary",
                                         ].join(" ")}
                                     >
                                         {category.label}

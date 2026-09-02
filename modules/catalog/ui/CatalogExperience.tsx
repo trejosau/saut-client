@@ -281,7 +281,7 @@ function CatalogFiltersTab({
   onReset,
 }: CatalogFiltersTabProps) {
   return (
-    <div className="border-b border-(--border) bg-(--surface-3) p-3 sm:p-4">
+    <div className="border-b border-hairline bg-hairline-soft p-3 sm:p-4">
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.2fr)_auto] xl:items-center">
         <SelectField
           aria-label="Filtrar por tipo de prenda"
@@ -318,14 +318,14 @@ function CatalogFiltersTab({
         />
 
         <div className="flex items-center justify-between gap-2 xl:justify-end">
-          <span className="inline-flex min-h-10 items-center border border-(--border) bg-white px-3 text-[11px] font-black uppercase text-(--text)">
+          <span className="inline-flex min-h-10 items-center border border-hairline bg-white px-3 text-[11px] font-black uppercase text-ink">
             {resultsCount} resultado{resultsCount === 1 ? "" : "s"}
           </span>
           {hasActiveFilters ? (
             <button
               type="button"
               onClick={onReset}
-              className="inline-flex min-h-10 items-center border border-(--border) bg-white px-3 text-[11px] font-black uppercase text-(--text) transition hover:bg-(--saut-yellow)"
+              className="inline-flex min-h-10 items-center border border-hairline bg-white px-3 text-[11px] font-black uppercase text-ink transition hover:bg-primary"
             >
               Limpiar
             </button>
@@ -423,7 +423,7 @@ function CatalogExperienceContent({ items }: CatalogExperienceProps) {
   const [catalogBatchPage, setCatalogBatchPage] = React.useState(1);
 
   React.useEffect(() => {
-    setCatalogBatchPage(1);
+    queueMicrotask(() => setCatalogBatchPage(1));
   }, [category, garmentFilter, sortBy, query]);
 
   const decoratedSortedFiltered = React.useMemo(
@@ -443,10 +443,10 @@ function CatalogExperienceContent({ items }: CatalogExperienceProps) {
 
   return (
     <main className="w-full">
-      <header className="border-b border-(--border) bg-(--saut-navy) py-12 text-white sm:py-16">
+      <header className="border-b border-hairline bg-charcoal py-12 text-white sm:py-16">
         <div className="saut-container flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-xs font-extrabold uppercase text-(--saut-yellow)">Colección SAUT</p>
+            <p className="text-xs font-extrabold uppercase text-primary">Colección SAUT</p>
             <h1 className="saut-display mt-2 text-[clamp(46px,8vw,92px)] leading-[.9] uppercase">
               Catálogo
             </h1>
@@ -454,7 +454,7 @@ function CatalogExperienceContent({ items }: CatalogExperienceProps) {
               Diseños listos para vestir en las siluetas, colores y gramajes de la marca.
             </p>
           </div>
-          <Link href="/personalizar" className="saut-button saut-button--primary self-start sm:self-auto">
+          <Link href="/personalizar" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-ink bg-primary px-6 text-xs font-black uppercase text-ink transition hover:bg-primary/90 self-start sm:self-auto">
             Crear mi diseño <ArrowRight size={18} />
           </Link>
         </div>
@@ -462,7 +462,7 @@ function CatalogExperienceContent({ items }: CatalogExperienceProps) {
 
       <div className="saut-container space-y-16 py-12 sm:py-16">
         {categoryOnlyView ? (
-          <section className="overflow-visible border border-(--border) bg-white">
+          <section className="overflow-visible border border-hairline bg-white">
             <CatalogFiltersTab
               garmentFilter={garmentFilter}
               sortBy={sortBy}
@@ -481,7 +481,7 @@ function CatalogExperienceContent({ items }: CatalogExperienceProps) {
 
             <div className="p-4 sm:p-6">
               <div className="mb-4 flex items-center gap-2">
-                <SlidersHorizontal className="h-5 w-5 text-(--saut-blue)" />
+                <SlidersHorizontal className="h-5 w-5 text-info" />
                 <h2 className="saut-display text-2xl uppercase">Productos</h2>
               </div>
 
@@ -505,7 +505,7 @@ function CatalogExperienceContent({ items }: CatalogExperienceProps) {
             {bestSellers.length ? (
               <section>
                 <div className="mb-7 inline-flex items-center gap-3">
-                  <ShirtBadgeIcon className="h-6 w-6 text-(--saut-blue)" />
+                  <ShirtBadgeIcon className="h-6 w-6 text-info" />
                   <div>
                     <p className="saut-kicker">Los favoritos</p>
                     <h2 className="saut-display mt-1 text-4xl uppercase">Más vendidos</h2>
@@ -516,15 +516,15 @@ function CatalogExperienceContent({ items }: CatalogExperienceProps) {
             ) : null}
 
             {conjuntos.length ? (
-              <section className="border-y border-(--border) py-12">
+              <section className="border-y border-hairline py-12">
                 <div className="mb-7 inline-flex items-center gap-3">
-                  <StitchLineIcon className="h-6 w-6 text-(--saut-blue)" />
+                  <StitchLineIcon className="h-6 w-6 text-info" />
                   <h2 className="saut-display text-4xl uppercase">Conjuntos</h2>
                 </div>
                 <div className="grid gap-10">
                   {conjuntos.map((set) => (
                     <div key={set.id}>
-                      <h3 className="mb-4 text-sm font-extrabold uppercase text-(--saut-navy)">{set.title}</h3>
+                      <h3 className="mb-4 text-sm font-extrabold uppercase text-charcoal">{set.title}</h3>
                       <ProductCarousel products={set.items} intervalMs={4600} />
                     </div>
                   ))}
@@ -532,7 +532,7 @@ function CatalogExperienceContent({ items }: CatalogExperienceProps) {
               </section>
             ) : null}
 
-            <section className="overflow-visible border border-(--border) bg-white">
+            <section className="overflow-visible border border-hairline bg-white">
               <CatalogFiltersTab
                 garmentFilter={garmentFilter}
                 sortBy={sortBy}
@@ -551,7 +551,7 @@ function CatalogExperienceContent({ items }: CatalogExperienceProps) {
 
               <div className="p-4 sm:p-6">
                 <div className="mb-4 inline-flex items-center gap-2">
-                  <StitchLineIcon className="h-5 w-5 text-(--saut-blue)" />
+                  <StitchLineIcon className="h-5 w-5 text-info" />
                   <h2 className="saut-display text-2xl uppercase">Catálogo completo</h2>
                 </div>
 
@@ -574,7 +574,7 @@ function CatalogExperienceContent({ items }: CatalogExperienceProps) {
                     <button
                       type="button"
                       onClick={() => setCatalogBatchPage((prev) => prev + 1)}
-                      className="saut-button saut-button--ghost"
+                      className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-ink bg-transparent px-6 text-xs font-black uppercase text-ink transition hover:bg-soft-cloud/60"
                     >
                       Ver más
                     </button>
@@ -591,17 +591,17 @@ function CatalogExperienceContent({ items }: CatalogExperienceProps) {
 
 function CatalogEmptyState({ onReset }: { onReset: () => void }) {
   return (
-    <div className="grid min-h-64 place-items-center border border-dashed border-(--border) bg-(--surface-2) px-6 py-12 text-center">
+    <div className="grid min-h-64 place-items-center border border-dashed border-hairline bg-soft-cloud px-6 py-12 text-center">
       <div>
         <p className="saut-display text-2xl uppercase">Aún no hay piezas aquí</p>
-        <p className="mx-auto mt-2 max-w-[48ch] text-sm leading-6 text-(--muted)">
+        <p className="mx-auto mt-2 max-w-[48ch] text-sm leading-6 text-mute">
           Prueba otra categoría o crea una prenda desde cero en el estudio SAUT.
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-3">
-          <button type="button" onClick={onReset} className="saut-button saut-button--ghost">
+          <button type="button" onClick={onReset} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-ink bg-transparent px-6 text-xs font-black uppercase text-ink transition hover:bg-soft-cloud/60">
             Limpiar filtros
           </button>
-          <Link href="/personalizar" className="saut-button saut-button--primary">
+          <Link href="/personalizar" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-ink bg-primary px-6 text-xs font-black uppercase text-ink transition hover:bg-primary/90">
             Crear diseño <ArrowRight size={18} />
           </Link>
         </div>

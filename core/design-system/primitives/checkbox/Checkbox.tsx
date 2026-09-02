@@ -8,34 +8,95 @@ export type CheckboxSize = "sm" | "md" | "lg";
 
 export type CheckboxProps = Omit<
     React.InputHTMLAttributes<HTMLInputElement>,
-    "type" | "size"
+    "size"
 > & {
-    label?: string;
-    hint?: string;
-    error?: string;
+    label?: React.ReactNode;
+    hint?: React.ReactNode;
+    error?: React.ReactNode;
 
     size?: CheckboxSize;
 
-    /** Color del fondo cuando checked */
-    accentColor?: string; // default: amarillo SAUT
-    /** Color del ring focus */
-    ringColor?: string; // default: amarillo suave
-    /** Color del icono (palomita/guion) */
-    checkColor?: string; // default: negro SAUT
-
-    /** Indeterminate (—) */
+    /** ✅ Soporte indeterminate */
     indeterminate?: boolean;
+
+    /** Custom colors (opcionales) */
+    accentColor?: string; // fill cuando checked/indeterminate
+    ringColor?: string;   // focus-visible ring
+    checkColor?: string;  // icono check / dash
 
     wrapperClassName?: string;
 };
 
 type CheckboxCssVars = CssVars<"--cb-accent" | "--cb-ring" | "--cb-check">;
 
-const sizes: Record<CheckboxSize, { box: string; icon: string; gap: string }> = {
-    sm: { box: "h-4 w-4 rounded-[6px]", icon: "h-3.5 w-3.5", gap: "gap-2" },
-    md: { box: "h-5 w-5 rounded-[8px]", icon: "h-4 w-4", gap: "gap-3" },
-    lg: { box: "h-6 w-6 rounded-[10px]", icon: "h-5 w-5", gap: "gap-3" },
+const sizes: Record<
+    CheckboxSize,
+    { box: string; icon: string; gap: string }
+> = {
+    sm: { box: "h-[18px] w-[18px] rounded-[6px]", icon: "h-3 w-3", gap: "gap-2" },
+    md: { box: "h-[22px] w-[22px] rounded-[7px]", icon: "h-3.5 w-3.5", gap: "gap-2.5" },
+    lg: { box: "h-[26px] w-[26px] rounded-[8px]", icon: "h-4 w-4", gap: "gap-3" },
 };
+
+export const CheckboxControl = React.forwardRef<
+    HTMLInputElement,
+    Omit<CheckboxProps, "label" | "hint" | "error" | "wrapperClassName">
+>(function CheckboxControl(
+    {
+        size = "md",
+        accentColor,
+        ringColor,
+        checkColor,
+        indeterminate = false,
+        disabled,
+        className,
+        ...props
+    },
+    forwardedRef
+) {
+    const localRef = React.useRef<HTMLInputElement | null>(null);
+
+    const setRef = React.useCallback((node: HTMLInputElement | null) => {
+        localRef.current = node;
+        if (typeof forwardedRef === "function") forwardedRef(node);
+        else if (forwardedRef) forwardedRef.current = node;
+    }, [forwardedRef]);
+
+    React.useEffect(() => {
+        if (localRef.current) localRef.current.indeterminate = Boolean(indeterminate);
+    }, [indeterminate]);
+
+    const style: CheckboxCssVars = {
+        "--cb-accent": accentColor ?? "var(--color-primary)",
+        "--cb-ring": ringColor ?? "rgba(255,217,66,.30)",
+        "--cb-check": checkColor ?? "var(--color-ink)",
+    };
+
+    return (
+        <span className="relative inline-flex shrink-0" style={style}>
+            <input {...props} ref={setRef} type="checkbox" disabled={disabled} className={cn("peer sr-only", className)} />
+            <span
+                aria-hidden="true"
+                className={cn(
+                    "relative grid place-items-center border bg-[rgba(255,255,255,.35)]",
+                    "shadow-[0_10px_18px_rgba(8,10,13,.08)] transition-[box-shadow,border-color,background-color] duration-200",
+                    "peer-focus-visible:shadow-[0_0_0_3px_var(--cb-ring),0_12px_20px_rgba(8,10,13,.09)]",
+                    "border-hairline peer-checked:bg-[var(--cb-accent)] peer-checked:border-[var(--cb-accent)]",
+                    "peer-indeterminate:bg-[var(--cb-accent)] peer-indeterminate:border-[var(--cb-accent)]",
+                    "peer-checked:[&_.cb-check]:opacity-100 peer-indeterminate:[&_.cb-dash]:opacity-100",
+                    "peer-indeterminate:[&_.cb-check]:opacity-0",
+                    disabled && "opacity-60",
+                    sizes[size].box,
+                )}
+            >
+                <span className="cb-check absolute inset-0 grid place-items-center text-[var(--cb-check)] opacity-0 transition-opacity duration-150"><CheckIcon className={sizes[size].icon} /></span>
+                <span className="cb-dash absolute inset-0 grid place-items-center text-[var(--cb-check)] opacity-0 transition-opacity duration-150"><DashIcon className={sizes[size].icon} /></span>
+            </span>
+        </span>
+    );
+});
+
+CheckboxControl.displayName = "CheckboxControl";
 
 function CheckIcon({ className }: { className?: string }) {
     return (
@@ -81,20 +142,8 @@ export function Checkbox({
                          }: CheckboxProps) {
     const reactId = React.useId();
     const inputId = id ?? `cb-${reactId}`;
-    const ref = React.useRef<HTMLInputElement | null>(null);
-
-    React.useEffect(() => {
-        if (ref.current) ref.current.indeterminate = Boolean(indeterminate);
-    }, [indeterminate]);
-
-    const style: CheckboxCssVars = {
-        "--cb-accent": accentColor ?? "var(--saut-yellow)",
-        "--cb-ring": ringColor ?? "rgba(255,217,66,.30)",
-        "--cb-check": checkColor ?? "var(--saut-black)",
-    };
-
     return (
-        <div className={cn("w-full", wrapperClassName)} style={style}>
+        <div className={cn("w-full", wrapperClassName)}>
             <label
                 htmlFor={inputId}
                 className={cn(
@@ -103,77 +152,27 @@ export function Checkbox({
                     disabled ? "opacity-60 pointer-events-none" : "cursor-pointer"
                 )}
             >
-        <span className="relative mt-[2px]">
-          <input
-              ref={ref}
-              id={inputId}
-              type="checkbox"
-              disabled={disabled}
-              className={cn("peer sr-only", className)}
-              aria-invalid={Boolean(error) || undefined}
-              {...props}
-          />
-
-            {/* box */}
-            <span
-                className={cn(
-                    "relative grid place-items-center border bg-[rgba(255,255,255,.35)]",
-                    "shadow-[0_10px_18px_rgba(8,10,13,.08)]",
-                    "transition-[box-shadow,border-color,background-color,filter] duration-200 ease-out",
-                    "hover:shadow-[0_12px_20px_rgba(8,10,13,.09)]",
-                    "peer-focus-visible:shadow-[0_0_0_3px_var(--cb-ring),0_12px_20px_rgba(8,10,13,.09)]",
-                    // default border
-                    "border-[var(--border)]",
-                    // checked / indeterminate background
-                    "peer-checked:bg-[var(--cb-accent)] peer-checked:border-[var(--cb-accent)]",
-                    "peer-indeterminate:bg-[var(--cb-accent)] peer-indeterminate:border-[var(--cb-accent)]",
-                    // ✅ FIX: controlar iconos desde el box (no desde los hijos)
-                    "peer-checked:[&_.cb-check]:opacity-100",
-                    "peer-checked:[&_.cb-dash]:opacity-0",
-                    "peer-indeterminate:[&_.cb-dash]:opacity-100",
-                    "peer-indeterminate:[&_.cb-check]:opacity-0",
-                    // error
-                    error ? "border-[rgba(219,38,75,.55)]" : "",
-                    sizes[size].box
-                )}
-            >
-            <span
-                className={cn(
-                    "cb-check absolute inset-0 grid place-items-center text-[var(--cb-check)] opacity-0 transition-opacity duration-150"
-                )}
-            >
-              <CheckIcon className={sizes[size].icon} />
-            </span>
-
-            <span
-                className={cn(
-                    "cb-dash absolute inset-0 grid place-items-center text-[var(--cb-check)] opacity-0 transition-opacity duration-150"
-                )}
-            >
-              <DashIcon className={sizes[size].icon} />
-            </span>
-          </span>
-        </span>
+                <CheckboxControl id={inputId} disabled={disabled} className={className} aria-invalid={Boolean(error) || undefined} indeterminate={indeterminate} size={size} accentColor={accentColor} ringColor={ringColor} checkColor={checkColor} {...props} />
 
                 {/* text */}
-                {(label || hint || error) ? (
+                {(label !== undefined || hint !== undefined || error !== undefined) ? (
                     <span className="min-w-0">
-            {label ? (
-                <span className="block text-[12px] font-black tracking-[0.10em]">
-                {label}
-              </span>
-            ) : null}
+                        {label !== undefined ? (
+                            <span className="block text-[12px] font-black tracking-[0.10em] text-ink">
+                                {label}
+                            </span>
+                        ) : null}
 
                         {error ? (
-                            <span className="mt-1 block text-[12px] font-extrabold text-[rgba(219,38,75,.95)]">
-                {error}
-              </span>
+                            <span className="mt-1 block text-[12px] font-extrabold text-sale">
+                                {error}
+                            </span>
                         ) : hint ? (
-                            <span className="mt-1 block text-[12px] font-extrabold text-[var(--muted)]">
-                {hint}
-              </span>
+                            <span className="mt-1 block text-[12px] font-extrabold text-mute">
+                                {hint}
+                            </span>
                         ) : null}
-          </span>
+                    </span>
                 ) : null}
             </label>
         </div>

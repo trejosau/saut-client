@@ -30,18 +30,18 @@ function LandingHeaderContent() {
     };
 
     return (
-        <header className="sticky top-0 z-50 border-b border-(--border)">
-            <div className="bg-(--saut-navy) text-white">
+        <header className="sticky top-0 z-50 border-b border-hairline">
+            <div className="bg-charcoal text-white">
                 <div className="saut-container flex min-h-9 items-center justify-center gap-5 text-center text-xs font-bold uppercase">
-                    <span>Envíos a todo México</span>
-                    <span className="hidden h-1 w-1 rounded-full bg-(--saut-yellow) sm:block" />
-                    <span className="hidden sm:block">Producción cuidada</span>
-                    <span className="hidden h-1 w-1 rounded-full bg-(--saut-yellow) md:block" />
-                    <span className="hidden md:block">Diseños personalizados</span>
+                    <span>EnvÃ­os a todo MÃ©xico</span>
+                    <span className="hidden h-1 w-1 rounded-full bg-primary sm:block" />
+                    <span className="hidden sm:block">ProducciÃ³n cuidada</span>
+                    <span className="hidden h-1 w-1 rounded-full bg-primary md:block" />
+                    <span className="hidden md:block">DiseÃ±os personalizados</span>
                 </div>
             </div>
 
-            <React.Suspense fallback={<div className="h-[72px] bg-(--surface-2)" />}>
+            <React.Suspense fallback={<div className="h-[72px] bg-soft-cloud" />}>
                 <AppNavbar onLoginRequested={() => setLoginOpen(true)} />
             </React.Suspense>
 

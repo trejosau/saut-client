@@ -3,6 +3,7 @@
 import * as React from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/core/lib/utils/cn";
+import { useHydrated } from "@/core/hooks/useHydrated";
 
 export type SelectFieldSize = "sm" | "md" | "lg";
 export type SelectFieldState = "default" | "error" | "success";
@@ -13,10 +14,10 @@ export type SelectFieldProps = Omit<
     React.SelectHTMLAttributes<HTMLSelectElement>,
     "size" | "value" | "defaultValue" | "onChange"
 > & {
-    label?: string;
-    hint?: string;
-    error?: string;
-    success?: string;
+    label?: React.ReactNode;
+    hint?: React.ReactNode;
+    error?: React.ReactNode;
+    success?: React.ReactNode;
 
     size?: SelectFieldSize;
     state?: SelectFieldState;
@@ -30,6 +31,9 @@ export type SelectFieldProps = Omit<
     value?: string;
     defaultValue?: string;
     onChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+    onValueChange?: (value: string) => void;
+    loading?: boolean;
+    emptyMessage?: React.ReactNode;
 
     /** Layout */
     fullWidth?: boolean;
@@ -37,11 +41,12 @@ export type SelectFieldProps = Omit<
 
     /** Tuning */
     ringColor?: string;        // default amarillo suave
-    borderFocusColor?: string; // default amarillo sólido
-    borderColor?: string;      // default var(--border)
+    borderFocusColor?: string; // default amarillo sÃ³lido
+    borderColor?: string;      // default var(--color-hairline)
     bgColor?: string;          // default glass blanco
 
     wrapperClassName?: string;
+    labelClassName?: string;
     shellClassName?: string;
     selectClassName?: string; // ahora aplica al texto del trigger
 };
@@ -106,7 +111,7 @@ function childrenToOptions(children: React.ReactNode): SelectOption[] {
             const value = String(child.props.value ?? "");
             const label = String(child.props.children ?? "");
             const disabled = Boolean(child.props.disabled);
-            // ignoramos placeholder option vacío (lo manejamos con placeholder)
+            // ignoramos placeholder option vacÃ­o (lo manejamos con placeholder)
             if (value === "") return;
             list.push({ value, label, disabled });
         }
@@ -144,6 +149,7 @@ export function SelectField({
                                 borderColor,
                                 bgColor,
                                 wrapperClassName,
+                                labelClassName,
                                 shellClassName,
                                 selectClassName,
                                 disabled,
@@ -152,6 +158,9 @@ export function SelectField({
                                 value,
                                 defaultValue,
                                 onChange,
+                                onValueChange,
+                                loading = false,
+                                emptyMessage = "Sin opciones",
                                 name,
                                 required,
                                 ...props
@@ -172,16 +181,16 @@ export function SelectField({
 
     const baseVars: SelectCssVars = {
         "--sf-bg": bgColor ?? "rgba(255,255,255,.35)",
-        "--sf-border": borderColor ?? "var(--border)",
-        "--sf-focus-border": borderFocusColor ?? "rgba(255,217,66,.95)",
-        "--sf-ring": ringColor ?? "rgba(255,217,66,.32)",
+        "--sf-border": borderColor ?? "var(--color-hairline)",
+        "--sf-focus-border": borderFocusColor ?? "var(--color-primary)",
+        "--sf-ring": ringColor ?? "color-mix(in srgb, var(--color-primary) 32%, transparent)",
     };
 
     const stateVars: SelectCssVars =
         autoState === "error"
-            ? { "--sf-focus-border": "rgba(219,38,75,.95)", "--sf-ring": "rgba(219,38,75,.22)" }
+            ? { "--sf-focus-border": "var(--color-sale)", "--sf-ring": "color-mix(in srgb, var(--color-sale) 25%, transparent)" }
             : autoState === "success"
-                ? { "--sf-focus-border": "rgba(5,122,168,.85)", "--sf-ring": "rgba(5,122,168,.18)" }
+                ? { "--sf-focus-border": "var(--color-info)", "--sf-ring": "color-mix(in srgb, var(--color-info) 20%, transparent)" }
                 : {};
 
     const style: SelectCssVars = { ...baseVars, ...stateVars };
@@ -198,7 +207,7 @@ export function SelectField({
 
     const [open, setOpen] = React.useState(false);
     const [activeIndex, setActiveIndex] = React.useState(0);
-    const [mounted, setMounted] = React.useState(false);
+    const mounted = useHydrated();
     const [menuStyle, setMenuStyle] = React.useState<React.CSSProperties | null>(null);
 
     const btnRef = React.useRef<HTMLButtonElement | null>(null);
@@ -206,14 +215,11 @@ export function SelectField({
 
     useClickOutside([btnRef, menuRef], () => setOpen(false));
 
-    React.useEffect(() => {
-        setMounted(true);
-    }, []);
-
     const selected = computedOptions.find((o) => o.value === currentValue) ?? null;
 
     const setValue = (v: string) => {
         if (!isControlled) setInternal(v);
+        onValueChange?.(v);
 
         // Compat con onChange de <select>
         if (onChange) {
@@ -376,10 +382,10 @@ export function SelectField({
 
     return (
         <div className={cn(widthClass, wrapperClassName)} style={style}>
-            {label ? (
+            {label !== undefined ? (
                 <label
                     htmlFor={btnId}
-                    className="mb-2 block text-[12px] font-black tracking-[0.10em]"
+                    className={cn("mb-2 block text-[12px] font-black tracking-[0.10em]", labelClassName)}
                 >
                     {label}
                 </label>
@@ -399,11 +405,13 @@ export function SelectField({
                     onClick={() => (open ? closeMenu() : openMenu())}
                     onKeyDown={onButtonKeyDown}
                     aria-haspopup="listbox"
+                    role="combobox"
                     aria-expanded={open}
                     aria-controls={listId}
+                    aria-invalid={Boolean(error) || undefined}
                     className={cn(
                         "w-full inline-flex items-center justify-between gap-2",
-                        "bg-[var(--sf-bg)] border border-[var(--sf-border)] text-[var(--text)]",
+                        "bg-[var(--sf-bg)] border border-[var(--sf-border)] text-ink",
                         "shadow-[0_14px_28px_rgba(8,10,13,.09)]",
                         "transition-[box-shadow,border-color,filter] duration-200 ease-out",
                         "hover:shadow-[0_16px_30px_rgba(8,10,13,.10)]",
@@ -418,7 +426,7 @@ export function SelectField({
                 >
           <span className="inline-flex items-center gap-2 min-w-0">
             {leftIcon ? (
-                <span className="shrink-0 text-[var(--muted)]">{leftIcon}</span>
+                <span className="shrink-0 text-mute">{leftIcon}</span>
             ) : null}
 
               <span
@@ -426,14 +434,14 @@ export function SelectField({
                       "min-w-0 truncate font-extrabold",
                       sizes[size].text,
                       selectClassName,
-                      selected ? "text-[var(--text)]" : "text-[var(--muted)]"
+                      selected ? "text-ink" : "text-mute"
                   )}
               >
               {selected ? selected.label : placeholder}
             </span>
           </span>
 
-                    <span className="shrink-0 text-[var(--muted)]">
+                    <span className="shrink-0 text-mute">
             <ChevronDown />
           </span>
                 </button>
@@ -448,13 +456,13 @@ export function SelectField({
                         style={menuStyle ?? undefined}
                         className={cn(
                             "overflow-auto",
-                            "rounded-[14px] border border-[var(--border)]",
+                            "rounded-[14px] border border-hairline",
                             "bg-white",
                             "shadow-[0_24px_50px_rgba(8,10,13,.14)]",
                             sizes[size].menuPad
                         )}
                     >
-                        {computedOptions.map((o, idx) => {
+                        {loading ? <div role="status" className="p-3 text-center text-xs text-(--muted)">Cargandoâ€¦</div> : computedOptions.length === 0 ? <div role="status" className="p-3 text-center text-xs text-(--muted)">{emptyMessage}</div> : computedOptions.map((o, idx) => {
                             const isSelected = o.value === currentValue;
                             const isActive = idx === activeIndex;
 
@@ -492,13 +500,13 @@ export function SelectField({
             </div>
 
             {(hint || error || success) ? (
-                <div className="mt-2 text-[12px] font-extrabold leading-snug">
+                <div id={baseId + "-feedback"} className="mt-2 text-[12px] font-extrabold leading-snug">
                     {error ? (
                         <p className="m-0 text-[rgba(219,38,75,.95)]">{error}</p>
                     ) : success ? (
                         <p className="m-0 text-[rgba(5,122,168,.95)]">{success}</p>
                     ) : hint ? (
-                        <p className="m-0 text-[var(--muted)]">{hint}</p>
+                        <p className="m-0 text-mute">{hint}</p>
                     ) : null}
                 </div>
             ) : null}

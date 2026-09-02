@@ -108,8 +108,17 @@ function parseFieldErrors(message: string): FieldErrors {
 }
 
 export function toFormErrorBag(error: unknown, fallback = "No se pudo completar la accion."): FormErrorBag {
-  const message = asErrorMessage(error, fallback);
+  const message = isApiError(error)
+    ? errorMessage(error, fallback)
+    : asErrorMessage(error, fallback);
   const fields = parseFieldErrors(message);
+  if (isApiError(error)) {
+    for (const [field, messages] of Object.entries(error.fieldErrors)) {
+      for (const fieldMessage of messages) {
+        pushFieldError(fields, field, fieldMessage);
+      }
+    }
+  }
   const summary = message
     .split(/\n+/)
     .map((line) => line.trim())
@@ -129,3 +138,4 @@ export function fieldError(bag: FormErrorBag | null | undefined, field: string):
   if (!errors || errors.length === 0) return null;
   return errors[0] ?? null;
 }
+import { errorMessage, isApiError } from "@/core/lib/api/errors";

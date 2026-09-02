@@ -1,11 +1,11 @@
 import { cookies } from "next/headers";
 
+import { requestJson } from "@/core/lib/api/fetcher";
+import { ApiError } from "@/core/lib/api/errors";
 import { getServerApiBaseUrl } from "@/core/lib/config/env";
 import { ACCESS_TOKEN_COOKIE } from "@/modules/auth/server/cookies";
 
-const API_BASE_URL = getServerApiBaseUrl();
-
-type AdminRequestInit = RequestInit & {
+export type AdminRequestInit = RequestInit & {
   path: string;
 };
 
@@ -13,11 +13,19 @@ export async function adminRequest<T>(init: AdminRequestInit): Promise<T> {
   const cookieStore = await cookies();
   const accessToken = cookieStore.get(ACCESS_TOKEN_COOKIE)?.value;
   if (!accessToken) {
-    throw new Error("No autenticado para dashboard.");
+    throw new ApiError("No autenticado para dashboard.", {
+      status: 401,
+      code: "UNAUTHENTICATED",
+    });
   }
 
-  const response = await fetch(`${API_BASE_URL}${init.path}`, {
-    ...init,
+  const { path, ...requestInit } = init;
+  const baseUrl = getServerApiBaseUrl().replace(/\/$/, "");
+  const normalizedPath = path.startsWith("http://") || path.startsWith("https://")
+    ? path
+    : `${baseUrl}${path.startsWith("/") ? path : `/${path}`}`;
+  return requestJson<T>(normalizedPath, {
+    ...requestInit,
     cache: "no-store",
     headers: {
       Authorization: `Bearer ${accessToken}`,
@@ -25,23 +33,5 @@ export async function adminRequest<T>(init: AdminRequestInit): Promise<T> {
       ...(init.headers ?? {}),
     },
   });
-
-  if (!response.ok) {
-    const body = await response.text().catch(() => "");
-    throw new Error(
-      `Admin API error (${response.status})${body ? `: ${body}` : ""}`
-    );
-  }
-
-  if (response.status === 204) {
-    return undefined as T;
-  }
-
-  const text = await response.text().catch(() => "");
-  if (!text) {
-    return undefined as T;
-  }
-
-  return JSON.parse(text) as T;
 }
 

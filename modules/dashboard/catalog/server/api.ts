@@ -1,11 +1,4 @@
-import { cookies } from "next/headers";
-
-import { ACCESS_TOKEN_COOKIE } from "@/modules/auth/server/cookies";
-
-const API_BASE_URL =
-  process.env.INTERNAL_API_BASE_URL ??
-  process.env.NEXT_PUBLIC_API_BASE_URL ??
-  "http://localhost:8080";
+import { adminRequest } from "@/modules/dashboard/shared/server/admin-api";
 const CATALOG_UPLOAD_DEBUG =
   process.env.CATALOG_UPLOAD_DEBUG === "1" || process.env.NODE_ENV !== "production";
 
@@ -151,52 +144,12 @@ type CollectionItemPayload = {
   position_index: number;
 };
 
-type AdminRequestInit = RequestInit & {
-  path: string;
-};
-
 type AdminSignUploadResponse = {
   asset_id: string;
   upload_url: string;
   expires_at_unix?: number;
   method?: string;
 };
-
-async function adminRequest<T>(init: AdminRequestInit): Promise<T> {
-  const cookieStore = await cookies();
-  const accessToken = cookieStore.get(ACCESS_TOKEN_COOKIE)?.value;
-  if (!accessToken) {
-    throw new Error("No autenticado para dashboard admin.");
-  }
-
-  const response = await fetch(`${API_BASE_URL}${init.path}`, {
-    ...init,
-    cache: "no-store",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${accessToken}`,
-      ...(init.headers ?? {}),
-    },
-  });
-
-  if (!response.ok) {
-    const body = await response.text().catch(() => "");
-    throw new Error(
-      `Admin API error (${response.status})${body ? `: ${body}` : ""}`
-    );
-  }
-
-  if (response.status === 204) {
-    return undefined as T;
-  }
-
-  const text = await response.text().catch(() => "");
-  if (!text) {
-    return undefined as T;
-  }
-
-  return JSON.parse(text) as T;
-}
 
 export async function listAdminCollections() {
   return adminRequest<AdminCollection[]>({

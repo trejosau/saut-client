@@ -1,3 +1,5 @@
+import { requestJson } from "@/core/lib/api/fetcher";
+
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ??
   process.env.API_BASE_URL ??
@@ -233,7 +235,7 @@ function buildPath(path: string, query?: Record<string, string | undefined>): st
 }
 
 async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(path, {
+  return requestJson<T>(path, {
     ...init,
     cache: init?.cache ?? (IS_DEV ? "no-store" : "force-cache"),
     next: init?.next ?? (IS_DEV ? undefined : { revalidate: CATALOG_REVALIDATE_SECONDS }),
@@ -242,11 +244,6 @@ async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
       ...(init?.headers ?? {}),
     },
   });
-
-  if (!response.ok) {
-    throw new Error(`Catalog request failed (${response.status})`);
-  }
-  return (await response.json()) as T;
 }
 
 export async function fetchCatalogPublications(

@@ -96,7 +96,6 @@ export default function ProductCarousel({ products, intervalMs = 4200, className
 
     React.useEffect(() => {
         if (!emblaApi) return;
-        onSelect();
         emblaApi.on("select", onSelect);
         emblaApi.on("reInit", onSelect);
         return () => {

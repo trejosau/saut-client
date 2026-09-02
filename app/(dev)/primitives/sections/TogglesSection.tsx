@@ -73,7 +73,7 @@ export function TogglesSection() {
                             <Checkbox
                                 label="Example"
                                 defaultChecked
-                                accentColor="var(--saut-blue)"
+                                accentColor="var(--color-info)"
                                 checkColor="#ffffff"
                                 ringColor="rgba(5,122,168,.25)"
                             />

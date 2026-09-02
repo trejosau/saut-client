@@ -1,12 +1,9 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { requestJson } from "@/core/lib/api/fetcher";
+import { getServerApiBaseUrl } from "@/core/lib/config/env";
 import { ACCESS_TOKEN_COOKIE } from "@/modules/auth/server/cookies";
-
-const API_BASE_URL =
-  process.env.INTERNAL_API_BASE_URL ??
-  process.env.NEXT_PUBLIC_API_BASE_URL ??
-  "http://localhost:8080";
 
 export type AuthMeResponse = {
   account_id: string;
@@ -23,15 +20,16 @@ export async function getServerAuthMe() {
   const accessToken = cookieStore.get(ACCESS_TOKEN_COOKIE)?.value;
   if (!accessToken) return null;
 
-  const response = await fetch(`${API_BASE_URL}/auth/me`, {
-    method: "GET",
-    headers: { Authorization: `Bearer ${accessToken}` },
-    cache: "no-store",
-  });
-
-  if (!response.ok) return null;
-
-  const payload = (await response.json()) as Partial<AuthMeResponse>;
+  let payload: Partial<AuthMeResponse>;
+  try {
+    payload = await requestJson<Partial<AuthMeResponse>>(`${getServerApiBaseUrl().replace(/\/$/, "")}/auth/me`, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${accessToken}` },
+      cache: "no-store",
+    });
+  } catch {
+    return null;
+  }
   return {
     account_id: String(payload.account_id ?? ""),
     actor_type: String(payload.actor_type ?? ""),

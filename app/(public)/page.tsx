@@ -36,12 +36,12 @@ const promises = [
   },
   {
     icon: Truck,
-    title: "Envío nacional",
+    title: "EnvÃ­o nacional",
     copy: "Seguimiento hasta tu puerta.",
   },
   {
     icon: PenTool,
-    title: "Diseño propio",
+    title: "DiseÃ±o propio",
     copy: "Personaliza frente y espalda.",
   },
 ];
@@ -100,21 +100,21 @@ export default async function Page() {
             {/* Contenido ligado al splash */}
             <div className="absolute left-[15%] top-[46%] z-10 w-[64%] -translate-y-1/2">
               <h1 className="text-[clamp(20px,5vw,29px)] font-semibold leading-[1.12] tracking-[-.035em] sm:text-[clamp(24px,3.5vw,32px)] lg:text-[clamp(27px,1.8vw,34px)]">
-                Prendas con carácter, drops limitados y un estudio para
+                Prendas con carÃ¡cter, drops limitados y un estudio para
                 convertir tus ideas en ropa.
               </h1>
 
               <div className="mt-4 flex flex-wrap gap-3 sm:mt-5">
                 <Link
                   href="/catalogo"
-                  className="inline-flex h-11 items-center justify-center gap-3 rounded-[8px] bg-(--saut-yellow) px-5 text-[11px] font-black uppercase text-(--saut-black) shadow-sm transition hover:brightness-95 sm:h-12 sm:px-6 sm:text-xs"
+                  className="inline-flex h-11 items-center justify-center gap-3 rounded-[8px] bg-primary px-5 text-[11px] font-black uppercase text-ink shadow-sm transition hover:brightness-95 sm:h-12 sm:px-6 sm:text-xs"
                 >
-                  Ver catálogo <ArrowRight size={18} />
+                  Ver catÃ¡logo <ArrowRight size={18} />
                 </Link>
 
                 <Link
                   href="/personalizar"
-                  className="inline-flex h-11 items-center justify-center rounded-[8px] border border-white/35 bg-black/20 px-5 text-[11px] font-black uppercase text-white backdrop-blur-sm transition hover:border-white hover:bg-white hover:text-(--saut-black) sm:h-12 sm:px-6 sm:text-xs"
+                  className="inline-flex h-11 items-center justify-center rounded-[8px] border border-white/35 bg-black/20 px-5 text-[11px] font-black uppercase text-white backdrop-blur-sm transition hover:border-white hover:bg-white hover:text-ink sm:h-12 sm:px-6 sm:text-xs"
                 >
                   Personalizar
                 </Link>
@@ -128,18 +128,18 @@ export default async function Page() {
       <section
         data-motion-section="benefits"
         aria-label="Ventajas de comprar en SAUT"
-        className="border-b border-(--border) bg-(--surface-2)"
+        className="border-b border-hairline bg-soft-cloud"
       >
-        <div className="saut-container grid divide-y divide-(--border) sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+        <div className="saut-container grid divide-y divide-hairline sm:grid-cols-3 sm:divide-x sm:divide-y-0">
           {promises.map(({ icon: Icon, title, copy }) => (
             <div
               data-motion-item
               key={title}
               className="flex min-h-32 items-center gap-5 px-2 py-6 sm:px-7"
             >
-              <span className="grid size-11 shrink-0 place-items-center rounded-full border border-(--border) bg-white">
+              <span className="grid size-11 shrink-0 place-items-center rounded-full border border-hairline bg-white">
                 <Icon
-                  className="text-(--saut-blue)"
+                  className="text-info"
                   size={21}
                   strokeWidth={1.8}
                 />
@@ -147,14 +147,14 @@ export default async function Page() {
 
               <div>
                 <h2 className="text-sm font-black uppercase">{title}</h2>
-                <p className="mt-1 text-sm text-(--muted)">{copy}</p>
+                <p className="mt-1 text-sm text-mute">{copy}</p>
               </div>
             </div>
           ))}
         </div>
       </section>
 
-      {/* CATEGORÍAS */}
+      {/* CATEGORÃAS */}
       <section data-motion-section="categories" className="saut-section bg-white">
         <div className="saut-container">
           <div
@@ -168,19 +168,19 @@ export default async function Page() {
 
             <Link
               href="/catalogo"
-              className="saut-button saut-button--ghost self-start sm:self-auto"
+              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-ink bg-transparent px-6 text-xs font-black uppercase text-ink transition hover:bg-soft-cloud/60 self-start sm:self-auto"
             >
               Ver todas las prendas <ArrowRight size={18} />
             </Link>
           </div>
 
-          <div className="mt-12 grid gap-px overflow-hidden border border-(--border) bg-(--border) md:grid-cols-3">
+          <div className="mt-12 grid gap-px overflow-hidden border border-hairline bg-hairline md:grid-cols-3">
             {categories.map((category, index) => (
               <Link
                 data-motion-card
                 key={category.title}
                 href={category.href}
-                className="group bg-(--surface-2)"
+                className="group bg-soft-cloud"
               >
                 <div className="relative aspect-[4/5] overflow-hidden">
                   <Image
@@ -192,15 +192,15 @@ export default async function Page() {
                   />
 
                   {index === 0 ? (
-                    <span className="absolute left-5 top-5 bg-(--saut-yellow) px-3 py-2 text-[11px] font-black uppercase text-(--saut-black)">
-                      Más vendido
+                    <span className="absolute left-5 top-5 bg-primary px-3 py-2 text-[11px] font-black uppercase text-ink">
+                      MÃ¡s vendido
                     </span>
                   ) : null}
                 </div>
 
-                <div className="flex items-center justify-between border-t border-(--border) bg-white p-5">
+                <div className="flex items-center justify-between border-t border-hairline bg-white p-5">
                   <div>
-                    <span className="text-[11px] font-black text-(--muted)">
+                    <span className="text-[11px] font-black text-mute">
                       0{index + 1}
                     </span>
                     <h3 className="saut-display mt-1 text-3xl uppercase">
@@ -208,7 +208,7 @@ export default async function Page() {
                     </h3>
                   </div>
 
-                  <span className="grid size-11 shrink-0 place-items-center rounded-full border border-(--saut-black) transition-colors group-hover:bg-(--saut-black) group-hover:text-white">
+                  <span className="grid size-11 shrink-0 place-items-center rounded-full border border-ink transition-colors group-hover:bg-ink group-hover:text-white">
                     <ArrowRight size={18} />
                   </span>
                 </div>
@@ -222,18 +222,18 @@ export default async function Page() {
       {featured.length ? (
         <section
           data-motion-section="featured"
-          className="saut-section border-y border-(--border) bg-white"
+          className="saut-section border-y border-hairline bg-white"
         >
           <div className="saut-container">
             <div data-motion-heading className="flex items-end justify-between gap-5">
               <div>
-                <p className="saut-kicker">Selección SAUT</p>
+                <p className="saut-kicker">SelecciÃ³n SAUT</p>
                 <h2 className="saut-heading">Novedades</h2>
               </div>
 
               <Link
                 href="/catalogo"
-                className="hidden text-sm font-extrabold uppercase hover:text-(--saut-blue) sm:inline-flex"
+                className="hidden text-sm font-extrabold uppercase hover:text-info sm:inline-flex"
               >
                 Ver todo
               </Link>
@@ -253,24 +253,24 @@ export default async function Page() {
       {/* STUDIO */}
       <section
         data-motion-section="studio"
-        className="min-h-[calc(100svh-104px)] border-t border-(--border) bg-(--surface-2)"
+        className="min-h-[calc(100svh-104px)] border-t border-hairline bg-soft-cloud"
       >
         <div className="saut-container grid min-h-[calc(100svh-104px)] items-center gap-12 pb-[clamp(72px,8vw,112px)] pt-[clamp(48px,6vw,72px)] lg:grid-cols-[.8fr_1.2fr] lg:gap-20">
           <div data-motion-copy className="max-w-[560px]">
             <p className="saut-kicker">SAUT Studio / 01</p>
 
-            <h2 className="saut-display mt-4 text-[clamp(48px,7vw,92px)] leading-[.88] uppercase text-(--saut-navy)">
+            <h2 className="saut-display mt-4 text-[clamp(48px,7vw,92px)] leading-[.88] uppercase text-charcoal">
               Tu idea. Tu prenda.
             </h2>
 
-            <p className="mt-7 max-w-[50ch] text-base leading-7 text-(--muted)">
-              Elige modelo, color, talla y gramaje. Sube tus imágenes, agrega
+            <p className="mt-7 max-w-[50ch] text-base leading-7 text-mute">
+              Elige modelo, color, talla y gramaje. Sube tus imÃ¡genes, agrega
               texto y ajusta cada lado desde el estudio.
             </p>
 
             <Link
   href="/personalizar"
-  className="saut-button mt-9 bg-(--saut-yellow) text-(--saut-black) hover:bg-[#f2ca22]"
+  className="mt-9 inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-ink bg-primary px-6 text-xs font-black uppercase text-ink transition hover:bg-primary/90"
 >
   Abrir estudio <Sparkles size={18} />
 </Link>
