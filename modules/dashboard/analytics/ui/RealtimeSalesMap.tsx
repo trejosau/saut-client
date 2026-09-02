@@ -4,6 +4,7 @@ import * as React from "react";
 
 import { Badge, SelectField, TextField } from "@/core/design-system";
 import { requestJson } from "@/core/lib/api/fetcher";
+import { getAnalyticsWsUrl } from "@/core/lib/config/env";
 
 type Scope = "general" | "type" | "publication" | "collection" | "drop";
 
@@ -28,14 +29,6 @@ type Ping = {
   state_code?: string | null;
   occurred_at: string;
 };
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ??
-  process.env.API_BASE_URL ??
-  "http://localhost:8080";
-
-const WS_BASE_URL =
-  process.env.NEXT_PUBLIC_ANALYTICS_WS_URL ?? "ws://localhost:8097/ws/map";
 
 const STATE_POINTS: Record<string, { x: number; y: number }> = {
   coahuila: { x: 68, y: 28 },
@@ -147,9 +140,13 @@ export function RealtimeSalesMap() {
 
     const run = async () => {
       try {
-        const data = await requestJson<{ items?: Ping[] }>(`${API_BASE_URL}/analytics/map/pings?${query}`, { cache: "no-store" });
+        const data = await requestJson<Ping[] | { items?: Ping[] }>(`/api/analytics/map/pings?${query}`, {
+          cache: "no-store",
+          credentials: "same-origin",
+        });
         if (!cancelled) {
-          setPings((data.items ?? []).slice(0, 160));
+          const items = Array.isArray(data) ? data : data.items ?? [];
+          setPings(items.slice(0, 160));
         }
       } catch {
         // best effort
@@ -163,30 +160,64 @@ export function RealtimeSalesMap() {
   }, [query]);
 
   React.useEffect(() => {
-    const ws = new WebSocket(`${WS_BASE_URL}?${query}`);
+    let cancelled = false;
+    let ws: WebSocket | null = null;
+    const controller = new AbortController();
+    setConnected(false);
 
-    ws.onopen = () => setConnected(true);
-    ws.onclose = () => setConnected(false);
-    ws.onerror = () => setConnected(false);
-
-    ws.onmessage = (event) => {
+    const connect = async () => {
       try {
-        const payload = JSON.parse(event.data) as {
-          kind?: string;
-          data?: Ping;
-        };
-        if (!payload.data) return;
-
-        setPings((current) => {
-          const merged = [payload.data!, ...current.filter((item) => item.id !== payload.data!.id)];
-          return merged.slice(0, 180);
+        const ticketResponse = await requestJson<{ ticket?: string }>("/api/analytics/map/ticket", {
+          method: "POST",
+          cache: "no-store",
+          credentials: "same-origin",
+          signal: controller.signal,
         });
+        const ticket = ticketResponse.ticket?.trim();
+        if (cancelled || !ticket) return;
+
+        const socketQuery = new URLSearchParams(query);
+        socketQuery.set("ticket", ticket);
+        ws = new WebSocket(`${getAnalyticsWsUrl()}?${socketQuery.toString()}`);
+
+        ws.onopen = () => {
+          if (!cancelled) setConnected(true);
+        };
+        ws.onclose = () => {
+          if (!cancelled) setConnected(false);
+        };
+        ws.onerror = () => {
+          if (!cancelled) setConnected(false);
+        };
+
+        ws.onmessage = (event) => {
+          if (cancelled) return;
+          try {
+            const payload = JSON.parse(event.data) as {
+              kind?: string;
+              data?: Ping;
+            };
+            if (!payload.data) return;
+
+            setPings((current) => {
+              const merged = [payload.data!, ...current.filter((item) => item.id !== payload.data!.id)];
+              return merged.slice(0, 180);
+            });
+          } catch {
+            // ignore parse failures
+          }
+        };
       } catch {
-        // ignore parse failures
+        if (!cancelled) setConnected(false);
       }
     };
 
-    return () => ws.close();
+    void connect();
+    return () => {
+      cancelled = true;
+      controller.abort();
+      ws?.close();
+    };
   }, [query]);
 
   const dots = React.useMemo(() => {

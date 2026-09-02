@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { getServerAuthMe } from "@/modules/auth/server/auth";
+import { cookies } from "next/headers";
+
+import { ACCESS_TOKEN_COOKIE } from "@/modules/auth/server/cookies";
 
 const API_BASE_URL =
   process.env.INTERNAL_API_BASE_URL ??
@@ -25,18 +27,14 @@ export async function forwardSupportRequest(
     body?: unknown;
   }
 ) {
-  const me = await getServerAuthMe();
+  const cookieStore = await cookies();
+  const accessToken = cookieStore.get(ACCESS_TOKEN_COOKIE)?.value?.trim() ?? "";
   const response = await fetch(`${API_BASE_URL}${path}`, {
     method: init?.method ?? request.method,
     cache: "no-store",
     headers: {
       "Content-Type": "application/json",
-      ...(me
-        ? {
-            "x-account-id": me.account_id,
-            "x-actor-type": me.actor_type,
-          }
-        : {}),
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
     },
     body:
       init?.body === undefined || (init?.method ?? request.method) === "GET"

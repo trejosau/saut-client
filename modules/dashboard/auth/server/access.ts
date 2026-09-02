@@ -23,7 +23,6 @@ type PermissionPair = {
 
 type ModuleRule = DashboardModule & {
   anyPermissions: PermissionPair[];
-  actorTypes: string[];
 };
 
 const MODULE_RULES: ModuleRule[] = [
@@ -32,51 +31,42 @@ const MODULE_RULES: ModuleRule[] = [
     href: "/dashboard/catalogo",
     title: "Catalogo Interno",
     description: "Publicaciones, visibilidad, assets, drops y colecciones.",
-    anyPermissions: [{ screen: "catalog", action: "publish" }],
-    actorTypes: ["admin"],
+    anyPermissions: [{ screen: "catalog", action: "read" }],
   },
   {
     key: "inventario",
     href: "/dashboard/inventario",
     title: "Inventario",
     description: "Entradas, ajustes y movimientos de stock.",
-    anyPermissions: [{ screen: "inventory", action: "adjust" }],
-    actorTypes: ["admin", "operation", "ops"],
+    anyPermissions: [{ screen: "inventory", action: "read" }],
   },
   {
     key: "pedidos",
     href: "/dashboard/pedidos",
     title: "Pedidos",
     description: "Pedido y flujo del pedido por ítem.",
-    anyPermissions: [
-      { screen: "orders", action: "state_update" },
-      { screen: "work_orders", action: "merma_record" },
-    ],
-    actorTypes: ["admin", "designer", "operation", "ops"],
+    anyPermissions: [{ screen: "orders", action: "read" }],
   },
   {
     key: "envios",
     href: "/dashboard/envios",
     title: "Envios",
     description: "Nacional (tracking) y local (reparto/manual).",
-    anyPermissions: [{ screen: "shipping", action: "update_local_address" }],
-    actorTypes: ["admin", "operation", "ops"],
+    anyPermissions: [{ screen: "shipping", action: "read" }],
   },
   {
     key: "soporte",
     href: "/dashboard/soporte",
     title: "Soporte",
     description: "Casos, mensajes, estados y acciones de reembolso.",
-    anyPermissions: [{ screen: "orders", action: "state_update" }],
-    actorTypes: ["admin", "support"],
+    anyPermissions: [{ screen: "support", action: "read" }],
   },
   {
     key: "analitica",
     href: "/dashboard/analitica",
     title: "Analitica y Mapa",
     description: "KPIs y pings realtime con scope reutilizable.",
-    anyPermissions: [{ screen: "auth", action: "audit_read" }],
-    actorTypes: ["admin"],
+    anyPermissions: [{ screen: "analytics", action: "read" }],
   },
   {
     key: "permisos",
@@ -87,7 +77,6 @@ const MODULE_RULES: ModuleRule[] = [
       { screen: "auth", action: "audit_read" },
       { screen: "auth", action: "rbac_manage" },
     ],
-    actorTypes: ["admin"],
   },
 ];
 
@@ -97,19 +86,11 @@ function hasPermission(
   action: string
 ): boolean {
   const wanted = `${screen.toLowerCase()}:${action.toLowerCase()}`;
-  const byScreen = `${screen.toLowerCase()}:*`;
   const lowered = new Set(permissions.map((item) => item.toLowerCase().trim()));
-  return lowered.has("*:*") || lowered.has(byScreen) || lowered.has(wanted);
+  return lowered.has(wanted);
 }
 
 function isRuleAllowed(me: AuthMeResponse, rule: ModuleRule): boolean {
-  const actor = me.actor_type.trim().toLowerCase();
-  if (actor === "admin") return true;
-
-  if (rule.actorTypes.includes(actor)) {
-    return true;
-  }
-
   return rule.anyPermissions.some((pair) =>
     hasPermission(me.permissions, pair.screen, pair.action)
   );
@@ -137,7 +118,6 @@ export async function getDashboardAccess() {
 export async function ensureDashboardModuleAccess(moduleKey: DashboardModuleKey) {
   const access = await getDashboardAccess();
   if (!access) return null;
-  if (access.me.actor_type.toLowerCase() === "admin") return access;
 
   const allowed = access.modules.some((module) => module.key === moduleKey);
   if (!allowed) return null;
