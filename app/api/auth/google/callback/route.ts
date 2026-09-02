@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { requestJson } from "@/core/lib/api/fetcher";
 import {
   getAuthApiBaseUrl,
+  getAuthInternalApiKey,
   sanitizeReturnTo,
 } from "@/modules/auth/server/google";
 import { GOOGLE_STATE_COOKIE } from "@/modules/auth/server/cookies";
@@ -43,6 +44,7 @@ export async function GET(request: Request) {
       `${getAuthApiBaseUrl().replace(/\/$/, "")}/auth/google/consume`,
       {
         method: "POST",
+        headers: { "x-internal-api-key": getAuthInternalApiKey() },
         json: { ticket, state },
         cache: "no-store",
       }

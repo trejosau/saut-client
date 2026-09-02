@@ -15,6 +15,11 @@ export function getAuthApiBaseUrl() {
   return API_BASE_URL;
 }
 
+export function getAuthInternalApiKey() {
+  return process.env.AUTH_INTERNAL_API_KEY?.trim() ??
+    (process.env.NODE_ENV === "production" ? "" : "dev-internal-auth-key");
+}
+
 export function sanitizeReturnTo(rawValue: string | null, origin: string) {
   const trimmed = String(rawValue ?? "").trim();
   if (!trimmed) return "/";
