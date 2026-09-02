@@ -136,6 +136,7 @@ export function RealtimeSalesMap() {
   ]);
 
   React.useEffect(() => {
+    const controller = new AbortController();
     let cancelled = false;
 
     const run = async () => {
@@ -143,6 +144,7 @@ export function RealtimeSalesMap() {
         const data = await requestJson<Ping[] | { items?: Ping[] }>(`/api/analytics/map/pings?${query}`, {
           cache: "no-store",
           credentials: "same-origin",
+          signal: controller.signal,
         });
         if (!cancelled) {
           const items = Array.isArray(data) ? data : data.items ?? [];
@@ -156,6 +158,7 @@ export function RealtimeSalesMap() {
     void run();
     return () => {
       cancelled = true;
+      controller.abort();
     };
   }, [query]);
 
@@ -216,7 +219,13 @@ export function RealtimeSalesMap() {
     return () => {
       cancelled = true;
       controller.abort();
-      ws?.close();
+      if (ws) {
+        ws.onopen = null;
+        ws.onclose = null;
+        ws.onerror = null;
+        ws.onmessage = null;
+        ws.close();
+      }
     };
   }, [query]);
 
