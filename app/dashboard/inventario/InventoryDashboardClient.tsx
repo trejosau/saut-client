@@ -100,15 +100,6 @@ type ExecuteActionOptions = {
   onSuccess?: () => void;
 };
 
-type ModalShellProps = {
-  title: string;
-  subtitle?: string;
-  open: boolean;
-  onClose: () => void;
-  panelClassName?: string;
-  children: React.ReactNode;
-};
-
 type KpiCardProps = {
   label: string;
   value: string | number;
@@ -347,17 +338,6 @@ function sizeOptionsFor(value?: string): Array<{ value: string; label: string }>
   if (exists) return STOCK_SIZE_OPTIONS;
 
   return [...STOCK_SIZE_OPTIONS, { value: normalized, label: normalized.toUpperCase() }];
-}
-
-function ModalShell({
-  title,
-  subtitle,
-  open,
-  onClose,
-  panelClassName,
-  children,
-}: ModalShellProps) {
-  return <DashboardModal open={open} title={title} subtitle={subtitle} onClose={onClose} className={panelClassName}>{children}</DashboardModal>;
 }
 
 function KpiCard({ label, value, note, tone = "default" }: KpiCardProps) {
@@ -1404,12 +1384,12 @@ export function InventoryDashboardClient(props: InventoryDashboardClientProps) {
           </div>
         </div>
       </div>
-      <ModalShell
+      <DashboardModal
         title="Alta manual"
         subtitle="Carga varias prendas en una sola operacion"
         open={modal === "create-entry"}
         onClose={closeModal}
-        panelClassName="max-w-4xl"
+        className="max-w-4xl"
       >
         <form onSubmit={handleCreateInventoryEntryAction} className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,.85fr)]">
           <div className="space-y-3">
@@ -1621,14 +1601,14 @@ export function InventoryDashboardClient(props: InventoryDashboardClientProps) {
             </section>
           </aside>
         </form>
-      </ModalShell>
+      </DashboardModal>
 
-      <ModalShell
+      <DashboardModal
         title="Todos los movimientos"
         subtitle={`${totalMovements} movimientos cargados`}
         open={modal === "all-movements"}
         onClose={closeModal}
-        panelClassName="max-w-4xl"
+        className="max-w-4xl"
       >
         <div className="grid gap-3 md:grid-cols-3">
           <div className="rounded-[14px] border border-[rgba(18,47,92,.10)] bg-white/88 px-3 py-3">
@@ -1686,7 +1666,7 @@ export function InventoryDashboardClient(props: InventoryDashboardClientProps) {
             );
           })}
         </div>
-      </ModalShell>
+      </DashboardModal>
       {selectedRow ? (
         <Drawer
           open

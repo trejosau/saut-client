@@ -5,10 +5,11 @@ import { AppShell } from "./AppShell";
 
 describe("AppShell", () => {
   it("provides a stable keyboard navigation target", () => {
-    render(<AppShell>Contenido</AppShell>);
+    render(<AppShell><main>Contenido</main></AppShell>);
 
-    const main = screen.getByRole("main");
-    expect(main).toHaveAttribute("id", "main-content");
-    expect(main).toHaveAttribute("tabindex", "-1");
+    const content = document.getElementById("main-content");
+    expect(content).toBeInTheDocument();
+    expect(content).toHaveAttribute("tabindex", "-1");
+    expect(screen.getAllByRole("main")).toHaveLength(1);
   });
 });

@@ -6,6 +6,7 @@ import * as React from "react";
 
 import { Button, EmptyState, LoadingState, TextField } from "@/core/design-system";
 import { useToast } from "@/core/design-system/feedback/ToastHost";
+import { PageFrame } from "@/core/layout/PageFrame";
 import { requestJson } from "@/core/lib/api/fetcher";
 import { getSession } from "@/modules/auth/client/session";
 import {
@@ -332,7 +333,7 @@ function OrdersExperienceContent() {
   }, [accountId, addressDraft, editingOrderId, records, reloadLinkedOrders]);
 
   return (
-    <main className="w-full px-4 py-8 sm:px-8 lg:px-14">
+    <PageFrame>
       <section className="mx-auto max-w-6xl space-y-5">
         <article className="rounded-[22px] border border-hairline bg-[rgba(255,255,255,.45)] p-5 sm:p-6">
           <h1 className="text-[24px] font-black uppercase tracking-[0.06em] text-ink">
@@ -576,7 +577,7 @@ function OrdersExperienceContent() {
           })}
         </div>
       </section>
-    </main>
+    </PageFrame>
   );
 }
 

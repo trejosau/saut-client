@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { DashboardModal, SelectField, TextField } from "@/core/design-system";
 import { FormErrorBag } from "@/core/design-system/feedback/FormErrorBag";
@@ -91,18 +91,6 @@ function rangeStart(range: AuditRange): number | null {
   if (range === "7d") return now - 7 * 24 * 60 * 60 * 1000;
   if (range === "30d") return now - 30 * 24 * 60 * 60 * 1000;
   return null;
-}
-
-type ModalProps = {
-  open: boolean;
-  title: string;
-  subtitle?: string;
-  onClose: () => void;
-  children: ReactNode;
-};
-
-function Modal({ open, title, subtitle, onClose, children }: ModalProps) {
-  return <DashboardModal open={open} title={title} subtitle={subtitle} onClose={onClose} wide>{children}</DashboardModal>;
 }
 
 const miniBtnBase = "inline-flex min-h-[28px] items-center justify-center rounded-full border border-hairline bg-soft-cloud px-2.5 text-[9px] font-black uppercase tracking-wider text-ink transition hover:border-info disabled:opacity-50 disabled:cursor-not-allowed";
@@ -654,7 +642,7 @@ export function PermisosAuditoriaDashboardClient({
           </div>
         </div>
       </section>
-      <Modal
+      <DashboardModal
         open={!!userModalAccount}
         title={userModalAccount ? accountName(userModalAccount) : "Detalle de usuario"}
         subtitle={userModalAccount ? "Actividad y acceso del usuario" : undefined}
@@ -726,9 +714,9 @@ export function PermisosAuditoriaDashboardClient({
             </article>
           </section>
         ) : null}
-      </Modal>
+      </DashboardModal>
 
-      <Modal
+      <DashboardModal
         open={!!auditModalItem}
         title={auditModalItem ? auditModalItem.action : "Detalle de auditoria"}
         subtitle={auditModalItem ? "Que, cuando, como y quien ejecuto la accion" : undefined}
@@ -779,7 +767,7 @@ export function PermisosAuditoriaDashboardClient({
             </article>
           </section>
         ) : null}
-      </Modal>
+      </DashboardModal>
     </main>
   );
 }

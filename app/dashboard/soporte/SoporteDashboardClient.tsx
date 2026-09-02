@@ -7,6 +7,7 @@ import { Button, Checkbox, SelectField, TextAreaField, TextField } from "@/core/
 import { FormErrorBag } from "@/core/design-system/feedback/FormErrorBag";
 import { toFormErrorBag, type FormErrorBag as FormErrorBagState } from "@/core/design-system/feedback/form-errors";
 import { useToast } from "@/core/design-system/feedback/ToastHost";
+import { PageFrame } from "@/core/layout/PageFrame";
 import type { SupportCase, SupportCaseDetail } from "@/modules/dashboard/support/server/api";
 
 type ServerAction = (formData: FormData) => Promise<void>;
@@ -84,7 +85,7 @@ export function SoporteDashboardClient({
     };
 
   return (
-    <main className="w-full px-4 py-8 sm:px-8 lg:px-14">
+    <PageFrame>
       <section className="rounded-[22px] border border-hairline bg-[rgba(255,255,255,.38)] p-5 sm:p-6">
         <h1 className="text-[24px] sm:text-[30px] font-black uppercase tracking-[0.04em] text-ink">
           Soporte
@@ -220,7 +221,7 @@ export function SoporteDashboardClient({
           </div>
         </section>
       ) : null}
-    </main>
+    </PageFrame>
   );
 }
 

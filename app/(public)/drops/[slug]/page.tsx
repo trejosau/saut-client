@@ -6,6 +6,7 @@ import {
   fetchCatalogDropBySlug,
   publicationToProductCard,
 } from "@/modules/catalog/client/api";
+import { PageFrame } from "@/core/layout/PageFrame";
 
 function formatDate(value?: string | null): string {
   if (!value) return "-";
@@ -35,7 +36,7 @@ export default async function DropDetailPage({ params }: DropDetailPageProps) {
   const cards = detail.items.map(publicationToProductCard);
 
   return (
-    <main className="w-full px-4 py-8 sm:px-8 lg:px-14">
+    <PageFrame>
       <section className="rounded-[24px] border border-(--border) bg-[rgba(255,255,255,.38)] p-5 sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -80,6 +81,6 @@ export default async function DropDetailPage({ params }: DropDetailPageProps) {
           </div>
         )}
       </section>
-    </main>
+    </PageFrame>
   );
 }

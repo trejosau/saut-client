@@ -6,6 +6,7 @@ import {
   fetchCatalogCollectionBySlug,
   publicationToProductCard,
 } from "@/modules/catalog/client/api";
+import { PageFrame } from "@/core/layout/PageFrame";
 
 type CollectionDetailPageProps = {
   params: Promise<{ slug: string }>;
@@ -21,7 +22,7 @@ export default async function CollectionDetailPage({
   const cards = detail.items.map(publicationToProductCard);
 
   return (
-    <main className="w-full px-4 py-8 sm:px-8 lg:px-14">
+    <PageFrame>
       <section className="rounded-[24px] border border-(--border) bg-[rgba(255,255,255,.38)] p-5 sm:p-6">
         <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[rgba(8,10,13,.62)]">
           Coleccion
@@ -51,6 +52,6 @@ export default async function CollectionDetailPage({
           </div>
         )}
       </section>
-    </main>
+    </PageFrame>
   );
 }

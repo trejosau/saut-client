@@ -15,7 +15,7 @@ export default async function DashboardLayout({ children }: DashboardLayoutProps
   return (
     <AppShell
       header={<DashboardHeader />}
-      mainClassName="flex-1 w-full p-0"
+      contentClassName="flex-1 w-full p-0"
     >
       {children}
     </AppShell>

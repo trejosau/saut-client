@@ -9,7 +9,7 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
         <AppShell
             header={<LandingHeader />}
             footer={<LandingFooter />}
-            mainClassName="flex-1 w-full p-0"
+            contentClassName="flex-1 w-full p-0"
         >
             {children}
         </AppShell>

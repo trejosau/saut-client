@@ -255,19 +255,6 @@ function toPlannerVariantPreviews(
   }));
 }
 
-type ModalShellProps = {
-  title: string;
-  subtitle?: string;
-  open: boolean;
-  onClose: () => void;
-  wide?: boolean;
-  children: React.ReactNode;
-};
-
-function ModalShell({ title, subtitle, open, onClose, wide, children }: ModalShellProps) {
-  return <DashboardModal open={open} title={title} subtitle={subtitle} onClose={onClose} wide={wide}>{children}</DashboardModal>;
-}
-
 /** Compact dashboard form controls. The page configures semantics; geometry
  * and focus behavior stay in the shared design-system primitives. */
 function CatalogTextField({ wrapperClassName, shellClassName, inputClassName, ...props }: ComponentProps<typeof TextField>) {
@@ -1776,7 +1763,7 @@ export function CatalogDashboardClient({
         </article>
       </section>
 
-      <ModalShell
+      <DashboardModal
         title="Crear diseno"
         subtitle="Nuevo activo"
         open={modal === "create-design"}
@@ -1893,9 +1880,9 @@ export function CatalogDashboardClient({
             Guardar diseno
           </button>
         </form>
-      </ModalShell>
+      </DashboardModal>
 
-      <ModalShell
+      <DashboardModal
         title="Crear publicacion"
         subtitle="Nuevo item"
         open={modal === "create-publication"}
@@ -1998,9 +1985,9 @@ export function CatalogDashboardClient({
             />
           </div>
         </form>
-      </ModalShell>
+      </DashboardModal>
 
-      <ModalShell
+      <DashboardModal
         title="Crear coleccion"
         subtitle="Nuevo agrupador"
         open={modal === "create-collection"}
@@ -2058,9 +2045,9 @@ export function CatalogDashboardClient({
             Guardar coleccion
           </button>
         </form>
-      </ModalShell>
+      </DashboardModal>
 
-      <ModalShell
+      <DashboardModal
         title="Crear drop"
         subtitle="Nuevo calendario"
         open={modal === "create-drop"}
@@ -2113,9 +2100,9 @@ export function CatalogDashboardClient({
             Guardar drop
           </button>
         </form>
-      </ModalShell>
+      </DashboardModal>
 
-      <ModalShell
+      <DashboardModal
         title={activeDesign ? activeDesign.name : "Editar diseno"}
         subtitle="Gestion de variantes e imagenes"
         open={modal === "edit-design" && !!activeDesign}
@@ -2274,9 +2261,9 @@ export function CatalogDashboardClient({
             </section>
           </>
         ) : null}
-      </ModalShell>
+      </DashboardModal>
 
-      <ModalShell
+      <DashboardModal
         title={activePublication ? activePublication.title : "Editar publicacion"}
         subtitle={activePublication ? `/${activePublication.slug}` : undefined}
         open={modal === "edit-publication" && !!activePublication}
@@ -2373,9 +2360,9 @@ export function CatalogDashboardClient({
             </div>
           </>
         ) : null}
-      </ModalShell>
+      </DashboardModal>
 
-      <ModalShell
+      <DashboardModal
         title={activeCollection ? activeCollection.title : "Editar coleccion"}
         subtitle="Configurar metadata e items"
         open={modal === "edit-collection" && !!activeCollection}
@@ -2450,9 +2437,9 @@ export function CatalogDashboardClient({
             </div>
           </>
         ) : null}
-      </ModalShell>
+      </DashboardModal>
 
-      <ModalShell
+      <DashboardModal
         title={activeDrop ? activeDrop.title : "Editar drop"}
         subtitle="Configurar status y items"
         open={modal === "edit-drop" && !!activeDrop}
@@ -2537,7 +2524,7 @@ export function CatalogDashboardClient({
             </div>
           </>
         ) : null}
-      </ModalShell>
+      </DashboardModal>
     </main>
   );
 }
