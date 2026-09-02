@@ -562,9 +562,6 @@ export async function uploadAdminAssetFile(
       status: response.status,
       status_text: response.statusText,
       response_content_type: response.headers.get("content-type"),
-      response_server: response.headers.get("server"),
-      response_via: response.headers.get("via"),
-      response_body_preview: text.slice(0, 800),
     });
     throw new Error(`Asset upload failed (${response.status})${text ? `: ${text}` : ""}`);
   }
