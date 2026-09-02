@@ -2,22 +2,22 @@
 
 Frontend principal de SAUT.
 
-Esta app en `Next.js 16` concentra dos experiencias:
+Esta app en Next.js 16 concentra dos experiencias:
 
-- Tienda publica para clientes.
-- Dashboard interno para admin, operaciones, soporte y diseno.
+- Tienda pública para clientes.
+- Dashboard interno para admin, operaciones, soporte y diseño.
 
 ## Stack
 
-- `Next.js`
-- `React 19`
-- `TypeScript`
-- `Tailwind CSS 4`
-- Integracion con Stripe Checkout
+- Next.js 16.3.4
+- React 19.2.8
+- TypeScript 6.0.3
+- Tailwind CSS 4.3.3
+- Checkout de Stripe iniciado mediante los contratos API existentes
 
-## Modulos principales
+## Módulos principales
 
-### Publico
+### Público
 
 - `/`
 - `/catalogo`
@@ -49,7 +49,7 @@ Esta app en `Next.js 16` concentra dos experiencias:
 - WebSocket contra la misma API para el mapa de ventas en tiempo real.
 - Cookies HTTP-only mediante el BFF de Next.js para autenticación y dashboard.
 
-Variables usadas con mas frecuencia:
+Variables usadas con más frecuencia:
 
 - `NEXT_PUBLIC_API_BASE_URL`
 - `INTERNAL_API_BASE_URL`
@@ -62,12 +62,14 @@ Variables usadas con mas frecuencia:
 - `modules/commerce`: cliente HTTP y UI compartida del flujo de compra.
 - `modules/customizer`: editor y utilidades del personalizador.
 - `modules/dashboard`: APIs server-side y UI del dashboard.
-- `modules/auth`: cookies, sesion y helpers de acceso.
+- `modules/auth`: cookies, sesión y helpers de acceso.
 
 ## Desarrollo local
 
+Requisitos: Node.js 24.20.0 LTS y npm 12.0.2.
+
 ```bash
-npm install
+npm ci
 npm run dev
 ```
 
@@ -87,6 +89,9 @@ Las pruebas usan Vitest, Testing Library y jsdom. Los estilos globales, tokens
 semánticos y estados accesibles viven en `app/globals.css` y
 `core/design-system`.
 
+Consulta `STACK.md` para la matriz de compatibilidad, instalación reproducible
+y excepciones de versiones.
+
 ## Flujo Git
 
 - `main`: estado estable.
@@ -96,9 +101,10 @@ semánticos y estados accesibles viven en `app/globals.css` y
 
 ## Nota de estado
 
-El frontend ya consume la arquitectura real del monorepo:
+El frontend consume la arquitectura real del monorepo:
 
-- `auth` maneja sesion, roles, permisos y auditoria.
+- `auth` maneja sesión, roles, permisos y auditoría.
 - `orders` maneja pedidos, work orders y merma.
 - `analytics_map` entrega KPIs y mapa en tiempo real.
-- `pricing` ya esta activo por API, aunque todavia no existe una pantalla dedicada de pricing en dashboard.
+- `pricing` está activo por API, aunque todavía no existe una pantalla dedicada
+  de pricing en dashboard.
