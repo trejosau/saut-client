@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { ToastProvider, useToast, notify } from "./ToastHost";
 
@@ -24,5 +24,18 @@ describe("global notification host", () => {
     await Promise.resolve();
     notify.info("Información");
     await waitFor(() => expect(screen.getByText("Información")).toBeInTheDocument());
+  });
+
+  it("bounds duplicate history so unique notifications do not grow it indefinitely", async () => {
+    vi.spyOn(Date, "now").mockReturnValue(1_000);
+    render(<ToastProvider />);
+    await Promise.resolve();
+
+    notify.info("Mensaje inicial");
+    for (let index = 0; index < 110; index += 1) notify.info(`Mensaje ${index}`);
+    await waitFor(() => expect(screen.getByText("Mensaje 109")).toBeInTheDocument());
+
+    notify.info("Mensaje inicial");
+    await waitFor(() => expect(screen.getByText("Mensaje inicial")).toBeInTheDocument());
   });
 });

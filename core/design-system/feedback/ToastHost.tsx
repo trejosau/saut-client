@@ -21,6 +21,8 @@ export type ToastContextValue = {
 
 const DEFAULT_DURATION_MS = 4200;
 const DEFAULT_ERROR_DURATION_MS = 6200;
+const RECENT_TOAST_WINDOW_MS = 1200;
+const MAX_RECENT_TOAST_KEYS = 100;
 const TOAST_EVENT_NAME = "saut:toast";
 const ToastContext = React.createContext<ToastContextValue | null>(null);
 let mountedHosts = 0;
@@ -89,8 +91,15 @@ export function ToastProvider({ children }: { children?: React.ReactNode }) {
     const normalized = normalize(input);
     const key = normalized.tone + ":" + normalized.message;
     const now = Date.now();
+    for (const [recentKey, timestamp] of recentRef.current) {
+      if (now - timestamp >= RECENT_TOAST_WINDOW_MS) recentRef.current.delete(recentKey);
+    }
     const previous = recentRef.current.get(key);
-    if (previous && now - previous < 1200) return normalized.id;
+    if (previous !== undefined && now - previous < RECENT_TOAST_WINDOW_MS) return normalized.id;
+    if (recentRef.current.size >= MAX_RECENT_TOAST_KEYS) {
+      const oldestKey = recentRef.current.keys().next().value;
+      if (oldestKey !== undefined) recentRef.current.delete(oldestKey);
+    }
     recentRef.current.set(key, now);
     setToasts((current) => [...current, normalized].slice(-5));
     return normalized.id;
