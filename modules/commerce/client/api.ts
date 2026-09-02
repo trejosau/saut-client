@@ -104,6 +104,7 @@ export type PaymentAttemptResponse = {
 export type PaymentConfirmResponse = {
   attempt: PaymentAttemptResponse;
   order_id?: string | null;
+  order_access_token?: string | null;
   refunded_oversell: boolean;
 };
 
@@ -157,8 +158,6 @@ export type OrderResponse = {
 
 export type OrderLookupResponse = {
   id: string;
-  email: string;
-  phone?: string | null;
   status: string;
   shipping_method: string;
   order_code: string;
@@ -330,25 +329,30 @@ export async function cancelPaymentAttempt(attemptId: string) {
   );
 }
 
-export async function getOrder(orderId: string) {
-  return requestJson<OrderResponse>(buildUrl(`/orders/${encodeURIComponent(orderId)}`), {
+function orderAccessHeaders(orderAccessToken?: string | null): HeadersInit | undefined {
+  return orderAccessToken ? { "x-order-access-token": orderAccessToken } : undefined;
+}
+
+export async function getOrder(orderId: string, orderAccessToken?: string | null) {
+  return requestJson<OrderResponse>(`/api/orders/${encodeURIComponent(orderId)}`, {
     method: "GET",
+    headers: orderAccessHeaders(orderAccessToken),
   });
 }
 
-export async function getOrderByCheckout(checkoutId: string) {
+export async function getOrderByCheckout(checkoutId: string, orderAccessToken?: string | null) {
   return requestJson<OrderResponse>(
-    buildUrl(`/orders/by-checkout/${encodeURIComponent(checkoutId)}`),
-    { method: "GET" }
+    `/api/orders/by-checkout/${encodeURIComponent(checkoutId)}`,
+    { method: "GET", headers: orderAccessHeaders(orderAccessToken) }
   );
 }
 
 export async function lookupOrderByCode(input: { email: string; order_code: string }) {
   return requestJson<OrderLookupResponse>(
-    buildUrl("/orders/lookup", {
+    `/api/orders/lookup?${new URLSearchParams({
       email: input.email,
       order_code: input.order_code,
-    }),
+    }).toString()}`,
     {
       method: "GET",
     }
@@ -357,14 +361,16 @@ export async function lookupOrderByCode(input: { email: string; order_code: stri
 
 export async function updateLocalOrderAddress(
   orderId: string,
-  input: { address: LocalAddressPayload; reason?: string }
+  input: { address: LocalAddressPayload; reason?: string },
+  orderAccessToken?: string | null
 ) {
   return requestJson<{
     order_id: string;
     address: LocalAddressPayload;
     shipment?: Record<string, unknown> | null;
-  }>(buildUrl(`/shipping/local/orders/${encodeURIComponent(orderId)}/address`), {
+  }>(`/api/orders/${encodeURIComponent(orderId)}/address`, {
     method: "PATCH",
     body: JSON.stringify(input),
+    headers: orderAccessHeaders(orderAccessToken),
   });
 }

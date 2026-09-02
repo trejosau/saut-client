@@ -3,6 +3,7 @@
 export type LinkedOrderRecord = {
   order_id: string;
   order_code: string;
+  order_access_token?: string;
   email: string;
   account_id: string | null;
   status?: string;
@@ -30,6 +31,10 @@ function readRecords(): LinkedOrderRecord[] {
         return {
           order_id: String(row.order_id ?? ""),
           order_code: String(row.order_code ?? ""),
+          order_access_token:
+            typeof row.order_access_token === "string" && row.order_access_token.length >= 32
+              ? row.order_access_token
+              : undefined,
           email: String(row.email ?? ""),
           account_id:
             typeof row.account_id === "string" && row.account_id.trim().length > 0

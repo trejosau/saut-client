@@ -179,7 +179,7 @@ function OrdersExperienceContent() {
     void Promise.all(
       records.map(async (record) => {
         try {
-          const order = await getOrder(record.order_id);
+          const order = await getOrder(record.order_id, record.order_access_token);
           return { ok: true as const, order };
         } catch (err) {
           return {
@@ -248,6 +248,9 @@ function OrdersExperienceContent() {
       setMessage(null);
 
       try {
+        if (!accountId) {
+          throw new Error("Inicia sesión con el correo usado en la compra para ligar un pedido.");
+        }
         const email = linkEmail.trim().toLowerCase();
         const code = normalizeOrderCode(linkCode);
         if (!email) {
@@ -301,8 +304,9 @@ function OrdersExperienceContent() {
     setError(null);
     setMessage(null);
     try {
-      await updateLocalOrderAddress(editingOrderId, withReason(addressDraft));
-      const refreshed = await getOrder(editingOrderId);
+      const orderAccessToken = records.find((record) => record.order_id === editingOrderId)?.order_access_token;
+      await updateLocalOrderAddress(editingOrderId, withReason(addressDraft), orderAccessToken);
+      const refreshed = await getOrder(editingOrderId, orderAccessToken);
 
       setOrdersById((prev) => ({ ...prev, [refreshed.id]: refreshed }));
       upsertLinkedOrder({
@@ -325,7 +329,7 @@ function OrdersExperienceContent() {
     } finally {
       setSavingAddress(false);
     }
-  }, [accountId, addressDraft, editingOrderId, reloadLinkedOrders]);
+  }, [accountId, addressDraft, editingOrderId, records, reloadLinkedOrders]);
 
   return (
     <main className="w-full px-4 py-8 sm:px-8 lg:px-14">
@@ -335,7 +339,7 @@ function OrdersExperienceContent() {
             Mis pedidos
           </h1>
           <p className="mt-1 text-[12px] text-mute">
-            Rastrea estados, tracking y liga pedidos de invitado con codigo.
+            Rastrea estados, tracking y liga pedidos a tu cuenta.
           </p>
 
           <form onSubmit={handleLinkOrder} className="mt-4 grid gap-2 sm:grid-cols-4">
@@ -351,7 +355,7 @@ function OrdersExperienceContent() {
           </form>
 
           <div className="mt-2 text-[11px] text-mute">
-            Si compraste como invitado: usa correo + los primeros 8 caracteres del UUID.
+            Inicia sesión con el correo usado en la compra y usa el código de pedido para ligarlo.
           </div>
         </article>
 

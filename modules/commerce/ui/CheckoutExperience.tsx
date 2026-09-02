@@ -807,10 +807,11 @@ function CheckoutExperienceContent() {
   ]);
 
   const persistOrderLink = React.useCallback(
-    (order: OrderResponse) => {
+    (order: OrderResponse, orderAccessToken?: string | null) => {
       upsertLinkedOrder({
         order_id: order.id,
         order_code: buildOrderCode(order.id),
+        order_access_token: orderAccessToken ?? undefined,
         email: order.email,
         account_id: accountId,
         status: order.status,
@@ -839,10 +840,10 @@ function CheckoutExperienceContent() {
 
         const resolvedOrderId = confirmed.order_id ?? null;
         const order = resolvedOrderId
-          ? await getOrder(resolvedOrderId)
-          : await getOrderByCheckout(checkoutId);
+          ? await getOrder(resolvedOrderId, confirmed.order_access_token)
+          : await getOrderByCheckout(checkoutId, confirmed.order_access_token);
 
-        persistOrderLink(order);
+        persistOrderLink(order, confirmed.order_access_token);
         clear();
         setCurrentStep("address");
         setCheckoutSession(null);
