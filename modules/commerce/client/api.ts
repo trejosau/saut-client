@@ -48,6 +48,7 @@ export type CartSessionResponse = {
   status: string;
   guest_session_id?: string | null;
   account_id?: string | null;
+  cart_access_token?: string;
   total_items: number;
   subtotal_mxn: number;
   items: CartItemResponse[];
@@ -183,10 +184,14 @@ export async function createCartSession(input: {
   });
 }
 
-export async function getCartSession(cartId: string) {
+function cartAccessHeaders(cartAccessToken?: string | null): HeadersInit | undefined {
+  return cartAccessToken ? { "x-cart-access-token": cartAccessToken } : undefined;
+}
+
+export async function getCartSession(cartId: string, cartAccessToken?: string | null) {
   return requestJson<CartSessionResponse>(
     buildUrl(`/cart/sessions/${encodeURIComponent(cartId)}`),
-    { method: "GET" }
+    { method: "GET", headers: cartAccessHeaders(cartAccessToken) }
   );
 }
 
@@ -205,13 +210,15 @@ export async function addPredesignedCartItem(
     quantity: number;
     unit_price_mxn?: number;
     meta?: Record<string, unknown>;
-  }
+  },
+  cartAccessToken?: string | null
 ) {
   return requestJson<CartSessionResponse>(
     buildUrl(`/cart/sessions/${encodeURIComponent(cartId)}/items/predesigned`),
     {
       method: "POST",
       body: JSON.stringify(input),
+      headers: cartAccessHeaders(cartAccessToken),
     }
   );
 }
@@ -232,24 +239,27 @@ export async function addCustomizedCartItem(
     note?: string;
     improve_quality?: boolean;
     meta?: Record<string, unknown>;
-  }
+  },
+  cartAccessToken?: string | null
 ) {
   return requestJson<CartSessionResponse>(
     buildUrl(`/cart/sessions/${encodeURIComponent(cartId)}/items/customized`),
     {
       method: "POST",
       body: JSON.stringify(input),
+      headers: cartAccessHeaders(cartAccessToken),
     }
   );
 }
 
-export async function removeCartItem(cartId: string, itemId: string) {
+export async function removeCartItem(cartId: string, itemId: string, cartAccessToken?: string | null) {
   return requestJson<CartSessionResponse>(
     buildUrl(
       `/cart/sessions/${encodeURIComponent(cartId)}/items/${encodeURIComponent(itemId)}`
     ),
     {
       method: "DELETE",
+      headers: cartAccessHeaders(cartAccessToken),
     }
   );
 }
@@ -260,23 +270,25 @@ export async function createCheckoutSession(input: {
   phone: string;
   address: CheckoutAddress;
   selected_quote_id?: string;
-}) {
+}, cartAccessToken?: string | null) {
   return requestJson<CheckoutSessionResponse>(buildUrl("/checkout/sessions"), {
     method: "POST",
     body: JSON.stringify(input),
+    headers: cartAccessHeaders(cartAccessToken),
   });
 }
 
-export async function getCheckoutSession(checkoutId: string) {
+export async function getCheckoutSession(checkoutId: string, cartAccessToken?: string | null) {
   return requestJson<CheckoutSessionResponse>(
     buildUrl(`/checkout/sessions/${encodeURIComponent(checkoutId)}`),
-    { method: "GET" }
+    { method: "GET", headers: cartAccessHeaders(cartAccessToken) }
   );
 }
 
 export async function selectCheckoutShippingQuote(
   checkoutId: string,
-  quoteId: string
+  quoteId: string,
+  cartAccessToken?: string | null
 ) {
   return requestJson<CheckoutSessionResponse>(
     buildUrl(
@@ -285,46 +297,51 @@ export async function selectCheckoutShippingQuote(
     {
       method: "POST",
       body: JSON.stringify({ quote_id: quoteId }),
+      headers: cartAccessHeaders(cartAccessToken),
     }
   );
 }
 
 export async function createPaymentAttempt(
   checkoutSessionId: string,
-  input?: { return_origin?: string }
+  input?: { return_origin?: string },
+  cartAccessToken?: string | null
 ) {
   return requestJson<PaymentAttemptResponse>(buildUrl("/payments/attempts"), {
     method: "POST",
-    body: JSON.stringify({
-      checkout_session_id: checkoutSessionId,
-      return_origin: input?.return_origin,
-    }),
+      body: JSON.stringify({
+        checkout_session_id: checkoutSessionId,
+        return_origin: input?.return_origin,
+      }),
+      headers: cartAccessHeaders(cartAccessToken),
   });
 }
 
-export async function getPaymentAttempt(attemptId: string) {
+export async function getPaymentAttempt(attemptId: string, cartAccessToken?: string | null) {
   return requestJson<PaymentAttemptResponse>(
     buildUrl(`/payments/attempts/${encodeURIComponent(attemptId)}`),
-    { method: "GET" }
+    { method: "GET", headers: cartAccessHeaders(cartAccessToken) }
   );
 }
 
-export async function confirmPaymentAttempt(attemptId: string) {
+export async function confirmPaymentAttempt(attemptId: string, cartAccessToken?: string | null) {
   return requestJson<PaymentConfirmResponse>(
     buildUrl(`/payments/attempts/${encodeURIComponent(attemptId)}/confirm`),
     {
       method: "POST",
       body: JSON.stringify({}),
+      headers: cartAccessHeaders(cartAccessToken),
     }
   );
 }
 
-export async function cancelPaymentAttempt(attemptId: string) {
+export async function cancelPaymentAttempt(attemptId: string, cartAccessToken?: string | null) {
   return requestJson<PaymentAttemptResponse>(
     buildUrl(`/payments/attempts/${encodeURIComponent(attemptId)}/cancel`),
     {
       method: "POST",
       body: JSON.stringify({}),
+      headers: cartAccessHeaders(cartAccessToken),
     }
   );
 }

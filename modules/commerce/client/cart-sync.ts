@@ -8,6 +8,7 @@ import {
 } from "@/modules/commerce/client/api";
 
 const GUEST_CART_SESSION_STORAGE_KEY = "saut.checkout.guest_session_id.v1";
+const CHECKOUT_ACCESS_TOKEN_STORAGE_PREFIX = "saut.checkout.access_token.v1.";
 
 type CustomizerElementLike = {
   type?: string;
@@ -316,6 +317,34 @@ export function getOrCreateGuestCartSessionId(): string {
   return created;
 }
 
+export function storeCheckoutAccessToken(checkoutId: string, cartAccessToken: string): void {
+  if (typeof window === "undefined" || !checkoutId || cartAccessToken.length < 32) return;
+  try {
+    window.sessionStorage.setItem(`${CHECKOUT_ACCESS_TOKEN_STORAGE_PREFIX}${checkoutId}`, cartAccessToken);
+  } catch {
+    // The checkout can still continue in the current page when session storage is unavailable.
+  }
+}
+
+export function getCheckoutAccessToken(checkoutId: string): string | null {
+  if (typeof window === "undefined" || !checkoutId) return null;
+  try {
+    const token = window.sessionStorage.getItem(`${CHECKOUT_ACCESS_TOKEN_STORAGE_PREFIX}${checkoutId}`);
+    return token && token.length >= 32 ? token : null;
+  } catch {
+    return null;
+  }
+}
+
+export function clearCheckoutAccessToken(checkoutId: string): void {
+  if (typeof window === "undefined" || !checkoutId) return;
+  try {
+    window.sessionStorage.removeItem(`${CHECKOUT_ACCESS_TOKEN_STORAGE_PREFIX}${checkoutId}`);
+  } catch {
+    // Best effort cleanup only.
+  }
+}
+
 export async function syncLocalCartToBackend(input: {
   localItems: CartItem[];
   accountId?: string | null;
@@ -329,12 +358,22 @@ export async function syncLocalCartToBackend(input: {
     guest_session_id: input.guestSessionId,
     account_id: input.accountId ?? undefined,
   });
+  const cartAccessToken = cart.cart_access_token;
+  if (!cartAccessToken) {
+    throw new Error("No se recibió la capacidad segura del carrito.");
+  }
 
   for (const localItem of input.localItems) {
     if (hasCustomizedShape(localItem)) {
-      cart = await addCustomizedCartItem(cart.id, parseCustomized(localItem));
+      cart = {
+        ...(await addCustomizedCartItem(cart.id, parseCustomized(localItem), cartAccessToken)),
+        cart_access_token: cartAccessToken,
+      };
     } else {
-      cart = await addPredesignedCartItem(cart.id, parsePredesigned(localItem));
+      cart = {
+        ...(await addPredesignedCartItem(cart.id, parsePredesigned(localItem), cartAccessToken)),
+        cart_access_token: cartAccessToken,
+      };
     }
   }
 

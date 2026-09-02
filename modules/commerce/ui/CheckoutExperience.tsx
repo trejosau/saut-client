@@ -25,7 +25,10 @@ import {
   selectCheckoutShippingQuote,
 } from "@/modules/commerce/client/api";
 import {
+  clearCheckoutAccessToken,
+  getCheckoutAccessToken,
   getOrCreateGuestCartSessionId,
+  storeCheckoutAccessToken,
   syncLocalCartToBackend,
 } from "@/modules/commerce/client/cart-sync";
 import {
@@ -625,6 +628,24 @@ function CheckoutExperienceContent() {
   const prepareRequestSeqRef = React.useRef(0);
   const checkoutInputSignatureRef = React.useRef<string | null>(null);
   const hostedReturnHandledRef = React.useRef<string | null>(null);
+  const checkoutAccessRef = React.useRef<{ checkoutId: string; token: string } | null>(null);
+
+  const rememberCheckoutAccess = React.useCallback((checkoutId: string, token: string) => {
+    checkoutAccessRef.current = { checkoutId, token };
+    storeCheckoutAccessToken(checkoutId, token);
+  }, []);
+
+  const checkoutAccessFor = React.useCallback((checkoutId: string): string | null => {
+    const current = checkoutAccessRef.current;
+    return current?.checkoutId === checkoutId ? current.token : getCheckoutAccessToken(checkoutId);
+  }, []);
+
+  const forgetCheckoutAccess = React.useCallback((checkoutId: string) => {
+    if (checkoutAccessRef.current?.checkoutId === checkoutId) {
+      checkoutAccessRef.current = null;
+    }
+    clearCheckoutAccessToken(checkoutId);
+  }, []);
 
   React.useEffect(() => {
     if (!error) return;
@@ -711,6 +732,9 @@ function CheckoutExperienceContent() {
       return;
     }
 
+    if (checkoutSession?.id) {
+      forgetCheckoutAccess(checkoutSession.id);
+    }
     queueMicrotask(() => {
       setCurrentStep("address");
       setCheckoutSession(null);
@@ -719,7 +743,7 @@ function CheckoutExperienceContent() {
       setError(null);
       setMessage(null);
     });
-  }, [checkoutSession, currentStep, inputSignature, paymentAttempt]);
+  }, [checkoutSession, currentStep, forgetCheckoutAccess, inputSignature, paymentAttempt]);
 
   const validateCheckoutInput = React.useCallback(() => {
     if (items.length === 0) {
@@ -759,6 +783,10 @@ function CheckoutExperienceContent() {
         accountId,
         guestSessionId: getOrCreateGuestCartSessionId(),
       });
+      const cartAccessToken = remoteCart.cart_access_token;
+      if (!cartAccessToken) {
+        throw new Error("No se pudo asegurar el checkout. Intenta de nuevo.");
+      }
 
       let created = await createCheckoutSession({
         cart_id: remoteCart.id,
@@ -766,14 +794,15 @@ function CheckoutExperienceContent() {
         phone: normalizedPhone,
         address: currentAddress,
         selected_quote_id: selectedQuoteId || undefined,
-      });
+      }, cartAccessToken);
+      rememberCheckoutAccess(created.id, cartAccessToken);
 
       if (
         created.shipping_method === "national" &&
         selectedQuoteId &&
         selectedQuoteId !== created.shipping_quote_id
       ) {
-        created = await selectCheckoutShippingQuote(created.id, selectedQuoteId);
+        created = await selectCheckoutShippingQuote(created.id, selectedQuoteId, cartAccessToken);
       }
 
       if (prepareRequestSeqRef.current === seq) {
@@ -802,6 +831,7 @@ function CheckoutExperienceContent() {
     email,
     items,
     normalizedPhone,
+    rememberCheckoutAccess,
     selectedQuoteId,
     validateCheckoutInput,
   ]);
@@ -830,7 +860,11 @@ function CheckoutExperienceContent() {
       setMessage(null);
 
       try {
-        const confirmed = await confirmPaymentAttempt(attemptId);
+        const cartAccessToken = checkoutAccessFor(checkoutId);
+        if (!cartAccessToken) {
+          throw new Error("La sesión de checkout expiró. Inicia de nuevo el pago.");
+        }
+        const confirmed = await confirmPaymentAttempt(attemptId, cartAccessToken);
 
         if (confirmed.refunded_oversell) {
           throw new Error(
@@ -844,6 +878,7 @@ function CheckoutExperienceContent() {
           : await getOrderByCheckout(checkoutId, confirmed.order_access_token);
 
         persistOrderLink(order, confirmed.order_access_token);
+        forgetCheckoutAccess(checkoutId);
         clear();
         setCurrentStep("address");
         setCheckoutSession(null);
@@ -863,7 +898,7 @@ function CheckoutExperienceContent() {
         setBusyPaying(false);
       }
     },
-    [clear, persistOrderLink, router]
+    [checkoutAccessFor, clear, forgetCheckoutAccess, persistOrderLink, router]
   );
 
   React.useEffect(() => {
@@ -871,8 +906,9 @@ function CheckoutExperienceContent() {
       return;
     }
 
-    if (paymentAttemptParam) {
-      void cancelPaymentAttempt(paymentAttemptParam).catch(() => undefined);
+    const cartAccessToken = getCheckoutAccessToken(checkoutIdParam);
+    if (paymentAttemptParam && cartAccessToken) {
+      void cancelPaymentAttempt(paymentAttemptParam, cartAccessToken).catch(() => undefined);
     }
 
     queueMicrotask(() => {
@@ -881,7 +917,7 @@ function CheckoutExperienceContent() {
       setMessage("Pago cancelado en Stripe. Liberamos la reserva y tu carrito sigue intacto.");
     });
     void router.replace("/checkout");
-  }, [checkoutFlowParam, paymentAttemptParam, router]);
+  }, [checkoutFlowParam, checkoutIdParam, paymentAttemptParam, router]);
 
   React.useEffect(() => {
     if (!hasHostedReturnParams) {
@@ -922,10 +958,14 @@ function CheckoutExperienceContent() {
 
     try {
       const session = checkoutSession ?? (await prepareCheckout());
+      const cartAccessToken = checkoutAccessFor(session.id);
+      if (!cartAccessToken) {
+        throw new Error("La sesión de checkout expiró. Intenta de nuevo.");
+      }
       const attempt = await createPaymentAttempt(session.id, {
         return_origin:
           typeof window === "undefined" ? undefined : window.location.origin,
-      });
+      }, cartAccessToken);
 
       if (attempt.provider === "stripe" && isBlank(attempt.checkout_url ?? "")) {
         throw new Error("Stripe no devolvio la URL del checkout hosted.");
@@ -942,7 +982,7 @@ function CheckoutExperienceContent() {
     } finally {
       setBusyPaymentSetup(false);
     }
-  }, [checkoutSession, prepareCheckout]);
+  }, [checkoutAccessFor, checkoutSession, prepareCheckout]);
 
   const handleSelectQuote = React.useCallback(
     async (quoteId: string) => {
@@ -957,7 +997,11 @@ function CheckoutExperienceContent() {
       setError(null);
       setMessage(null);
       try {
-        const updated = await selectCheckoutShippingQuote(checkoutSession.id, quoteId);
+        const cartAccessToken = checkoutAccessFor(checkoutSession.id);
+        if (!cartAccessToken) {
+          throw new Error("La sesión de checkout expiró. Intenta de nuevo.");
+        }
+        const updated = await selectCheckoutShippingQuote(checkoutSession.id, quoteId, cartAccessToken);
         setCheckoutSession(updated);
       } catch (quoteError) {
         setError(
@@ -969,7 +1013,7 @@ function CheckoutExperienceContent() {
         setBusyQuote(false);
       }
     },
-    [checkoutSession]
+    [checkoutAccessFor, checkoutSession]
   );
 
   const handleBackToAddress = React.useCallback(() => {
