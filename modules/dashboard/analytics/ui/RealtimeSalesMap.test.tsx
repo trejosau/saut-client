@@ -32,8 +32,13 @@ describe("RealtimeSalesMap lifecycle", () => {
   });
 
   it("aborts the snapshot request and closes the socket on unmount", async () => {
+    requestJson.mockReset();
+    requestJson
+      .mockImplementationOnce(() => new Promise(() => undefined))
+      .mockResolvedValueOnce({ ticket: "analytics-ticket" });
+
     const view = render(<RealtimeSalesMap />);
-    await waitFor(() => expect(requestJson).toHaveBeenCalledOnce());
+    await waitFor(() => expect(requestJson).toHaveBeenCalledTimes(2));
 
     const signal = requestJson.mock.calls[0]?.[1]?.signal as AbortSignal;
     const socket = FakeWebSocket.instances[0]!;
